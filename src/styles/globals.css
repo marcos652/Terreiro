@@ -1,0 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background: #fdf9f3;
+  color: #111827;
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui;
+}
+
+.font-display {
+  font-family: 'Playfair Display', ui-serif, Georgia;
+}
+
+.shadow-floating {
+  box-shadow:
+    0 20px 40px -28px rgba(71, 85, 105, 0.55),
+    0 10px 20px -18px rgba(100, 116, 139, 0.45);
+}
