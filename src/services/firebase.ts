@@ -18,14 +18,18 @@ export const auth = getAuth(app);
 
 // Analytics só pode ser inicializado no browser
 let analytics: import('firebase/analytics').Analytics | undefined = undefined;
-if (
-  typeof window !== 'undefined' &&
-  typeof window.gtag !== 'undefined' &&
-  firebaseConfig.measurementId
-) {
+if (typeof window !== 'undefined' && firebaseConfig.measurementId) {
   try {
-    const { getAnalytics } = require('firebase/analytics');
-    analytics = getAnalytics(app);
+    const { getAnalytics, isSupported } = require('firebase/analytics');
+    isSupported()
+      .then((supported: boolean) => {
+        if (supported) {
+          analytics = getAnalytics(app);
+        }
+      })
+      .catch(() => {
+        analytics = undefined;
+      });
   } catch (e) {
     // Analytics não disponível
     analytics = undefined;
