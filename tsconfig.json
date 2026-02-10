@@ -35,7 +35,6 @@
         "src/hooks/*"
       ]
     },
-    "ignoreDeprecations": "5.0",
     "moduleResolution": "node"
   },
   "include": [
