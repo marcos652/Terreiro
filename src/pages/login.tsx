@@ -75,12 +75,9 @@ export default function LoginPage() {
             <div className="hidden flex-col justify-center gap-6 md:flex">
               <div className="text-xs uppercase tracking-[0.3em] text-ink-400">Terreiro</div>
               <h1 className="font-display text-4xl font-semibold text-ink-900">
-                Painel de gestao com foco em rituais, pessoas e fincas.
+                SEJA BEM-VINDO, QUE OS ORIXAS DE GUIE
               </h1>
-              <p className="text-sm text-ink-500">
-                Centralize agenda, estoque e financeiro em um unico lugar. Acompanhe as tendencias e
-                aja com rapidez.
-              </p>
+              <p className="text-sm text-ink-500">Entre para continuar.</p>
               <div className="flex items-center gap-3 text-xs text-ink-400">
                 <span className="rounded-full border border-ink-200 px-3 py-1">Seguro</span>
                 <span className="rounded-full border border-ink-200 px-3 py-1">Organizado</span>
