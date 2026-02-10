@@ -100,13 +100,13 @@ const DashboardPage = () => {
       return;
     }
     await addStockItem({
-      category: 'Velas',
-      name: 'Vela Branca Pequena',
-      color: 'Branca',
-      quantity: 100,
+      category: 'Item',
+      name: 'Novo item',
+      color: 'N/A',
+      quantity: 0,
       unit: 'unidade',
-      price: 2.5,
-      supplier: 'Fornecedor X',
+      price: 0,
+      supplier: 'N/A',
       created_at: new Date().toISOString(),
     });
     alert('Item de estoque criado!');
