@@ -126,7 +126,7 @@ export default function EstoquePage() {
               onChange={(event) => setNewItem((prev) => ({ ...prev, supplier: event.target.value }))}
             />
             <div className="rounded-xl border border-ink-100 bg-ink-50 p-3 text-xs text-ink-500">
-              Itens com menos de 8 unidades são destacados para reposição.
+              Itens com poucas unidades são destacados para reposição.
             </div>
           </div>
         </div>
@@ -157,7 +157,7 @@ export default function EstoquePage() {
               </thead>
               <tbody>
             {filteredItems.map((item) => {
-                  const low = item.quantity < 8;
+                  const low = item.quantity <= 0;
                   return (
                     <tr key={item.id} className="border-t border-ink-100">
                       <td className="py-3 font-semibold text-ink-900">{item.name}</td>
@@ -192,4 +192,3 @@ export default function EstoquePage() {
     </AppShell>
   );
 }
-

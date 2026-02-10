@@ -70,7 +70,7 @@ const DashboardPage = () => {
       let critical = 0;
       snapshot.forEach((docSnap) => {
         const data = docSnap.data() as { quantity: number };
-        if (Number(data.quantity || 0) < 8) critical += 1;
+        if (Number(data.quantity || 0) <= 0) critical += 1;
       });
       setCriticalStock(critical);
     });
