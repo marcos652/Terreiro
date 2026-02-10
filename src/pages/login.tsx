@@ -94,14 +94,14 @@ export default function LoginPage() {
 
             <form
               onSubmit={handleLogin}
-              className="w-full rounded-3xl border border-ink-100/80 bg-white/80 p-6 shadow-[0_30px_80px_-60px_rgba(15,23,42,0.6)] backdrop-blur md:p-8"
+              className="w-full rounded-[32px] border border-ink-100/80 bg-white/85 p-8 shadow-[0_40px_90px_-60px_rgba(15,23,42,0.6)] backdrop-blur md:p-10 lg:p-12"
             >
               <div className="mb-6">
                 <div className="text-xs uppercase tracking-[0.3em] text-ink-300">Acesso</div>
-                <h2 className="font-display text-2xl font-semibold text-ink-900">
+                <h2 className="font-display text-3xl font-semibold text-ink-900">
                   {mode === 'register' ? 'Criar conta' : 'Entrar no painel'}
                 </h2>
-                <p className="text-sm text-ink-500">
+                <p className="text-base text-ink-500">
                   {mode === 'register'
                     ? 'Cadastre um novo acesso para o painel.'
                     : 'Use seu e-mail e senha cadastrados.'}
@@ -136,7 +136,7 @@ export default function LoginPage() {
                   placeholder="voce@terreiro.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-2xl border border-ink-100 bg-white px-4 py-3 text-sm text-ink-700 shadow-sm focus:border-ink-900 focus:outline-none focus:ring-2 focus:ring-ink-200"
+                  className="w-full rounded-2xl border border-ink-100 bg-white px-4 py-3.5 text-base text-ink-700 shadow-sm focus:border-ink-900 focus:outline-none focus:ring-2 focus:ring-ink-200"
                   required
                 />
                 <label className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">
@@ -148,7 +148,7 @@ export default function LoginPage() {
                     placeholder="Digite sua senha"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-2xl border border-ink-100 bg-white px-4 py-3 text-sm text-ink-700 shadow-sm focus:border-ink-900 focus:outline-none focus:ring-2 focus:ring-ink-200"
+                    className="w-full rounded-2xl border border-ink-100 bg-white px-4 py-3.5 text-base text-ink-700 shadow-sm focus:border-ink-900 focus:outline-none focus:ring-2 focus:ring-ink-200"
                     required
                   />
                   <button
@@ -163,7 +163,7 @@ export default function LoginPage() {
                 {info && <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{info}</div>}
                 <button
                   type="submit"
-                  className="mt-2 w-full rounded-2xl bg-ink-900 py-3 text-sm font-semibold text-white shadow-lg hover:bg-ink-800 transition"
+                  className="mt-2 w-full rounded-2xl bg-ink-900 py-3.5 text-base font-semibold text-white shadow-lg hover:bg-ink-800 transition"
                   disabled={loading}
                 >
                   {loading ? 'Processando...' : mode === 'register' ? 'Criar conta' : 'Entrar'}
