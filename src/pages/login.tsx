@@ -79,7 +79,7 @@ export default function LoginPage() {
                 Terreiro
               </div>
               <h1 className="font-display text-5xl font-semibold leading-tight text-ink-900 md:text-6xl">
-                SEJA BEM-VINDO, QUE OS ORIXAS DE GUIE
+                seja bem-vindo, que os orixas te abençoes
               </h1>
               <p className="max-w-md text-lg text-ink-500">
                 Acesse o painel com seguranca para acompanhar rituais, estoque e financeiro em um
