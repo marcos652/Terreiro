@@ -21,6 +21,7 @@ export default function LoginPage() {
     try {
       if (!auth) {
         setError('Configuracao do Firebase nao encontrada.');
+        setLoading(false);
         return;
       }
       if (mode === 'register') {
@@ -47,6 +48,7 @@ export default function LoginPage() {
     try {
       if (!auth) {
         setError('Configuracao do Firebase nao encontrada.');
+        setLoading(false);
         return;
       }
       await sendPasswordResetEmail(auth, email);
