@@ -29,6 +29,9 @@ const DashboardPage = () => {
   const [cashTotal, setCashTotal] = useState(0);
   const [membersPaid, setMembersPaid] = useState({ paid: 0, total: 0 });
   const [criticalStock, setCriticalStock] = useState(0);
+  const [hasCashData, setHasCashData] = useState(false);
+  const [hasMembershipData, setHasMembershipData] = useState(false);
+  const [hasStockData, setHasStockData] = useState(false);
   const [nextEvent, setNextEvent] = useState<{ date: string; time: string; title: string } | null>(null);
 
   useEffect(() => {
@@ -45,6 +48,7 @@ const DashboardPage = () => {
       let entradas = 0;
       let saidas = 0;
       const recentActivity: ActivityItem[] = [];
+      setHasCashData(!snapshot.empty);
       snapshot.forEach((docSnap) => {
         const data = docSnap.data() as { type: 'entrada' | 'saida'; amount: number };
         const amountValue = Number(data.amount || 0);
@@ -70,6 +74,7 @@ const DashboardPage = () => {
     const membershipUnsub = onSnapshot(membershipRef, (snapshot) => {
       let total = 0;
       let paid = 0;
+      setHasMembershipData(!snapshot.empty);
       snapshot.forEach((docSnap) => {
         const data = docSnap.data() as { status: 'pago' | 'pendente'; value: number };
         total += Number(data.value || 0);
@@ -81,6 +86,7 @@ const DashboardPage = () => {
     const stockRef = collection(db, COLLECTIONS.STOCK_ITEMS);
     const stockUnsub = onSnapshot(stockRef, (snapshot) => {
       let critical = 0;
+      setHasStockData(!snapshot.empty);
       snapshot.forEach((docSnap) => {
         const data = docSnap.data() as { quantity: number };
         if (Number(data.quantity || 0) <= 0) critical += 1;
@@ -146,7 +152,9 @@ const DashboardPage = () => {
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Caixa atual</div>
-          <div className="mt-2 text-2xl font-semibold text-ink-900">R$ {formatBRL(cashTotal)}</div>
+          <div className="mt-2 text-2xl font-semibold text-ink-900">
+            {hasCashData ? `R$ ${formatBRL(cashTotal)}` : '—'}
+          </div>
           <div className="mt-3 flex items-center gap-2 text-xs text-ink-500">
             <span className="rounded-full bg-ink-100 px-2 py-1 text-ink-600">Sem dados</span>
             <span>Atualize para exibir valores</span>
@@ -154,17 +162,24 @@ const DashboardPage = () => {
         </div>
         <div className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Mensalidades</div>
-          <div className="mt-2 text-2xl font-semibold text-ink-900">R$ {formatBRL(membersPaid.paid)}</div>
+          <div className="mt-2 text-2xl font-semibold text-ink-900">
+            {hasMembershipData ? `R$ ${formatBRL(membersPaid.paid)}` : '—'}
+          </div>
           <div className="mt-3 h-2 w-full rounded-full bg-ink-100">
             <div
               className="h-2 rounded-full bg-purple-500"
               style={{
-                width: membersPaid.total > 0 ? `${Math.min(100, (membersPaid.paid / membersPaid.total) * 100)}%` : '0%',
+                width:
+                  membersPaid.total > 0
+                    ? `${Math.min(100, (membersPaid.paid / membersPaid.total) * 100)}%`
+                    : '0%',
               }}
             />
           </div>
           <div className="mt-2 text-xs text-ink-500">
-            R$ {formatBRL(membersPaid.paid)} de R$ {formatBRL(membersPaid.total)}
+            {hasMembershipData
+              ? `R$ ${formatBRL(membersPaid.paid)} de R$ ${formatBRL(membersPaid.total)}`
+              : 'Sem dados'}
           </div>
         </div>
         <div className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
@@ -181,7 +196,9 @@ const DashboardPage = () => {
         </div>
         <div className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Estoque critico</div>
-          <div className="mt-2 text-2xl font-semibold text-ink-900">{criticalStock} itens</div>
+          <div className="mt-2 text-2xl font-semibold text-ink-900">
+            {hasStockData ? `${criticalStock} itens` : '—'}
+          </div>
           <div className="mt-2 text-sm text-ink-500">Sem informacoes</div>
         </div>
       </div>

@@ -13,7 +13,7 @@ export default function CaixaPage() {
     new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
   const [transactions, setTransactions] = useState<CashTransaction[]>([]);
   const [filter, setFilter] = useState<'todos' | 'entrada' | 'saida'>('todos');
-  const [form, setForm] = useState({ label: '', amount: 0, type: 'entrada', method: 'Pix' });
+  const [form, setForm] = useState({ label: '', amount: '', type: 'entrada', method: 'Pix' });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,7 +62,7 @@ export default function CaixaPage() {
     };
     const id = await addCashTransaction(payload);
     setTransactions((prev) => [{ id, ...payload }, ...prev]);
-    setForm({ label: '', amount: 0, type: 'entrada', method: 'Pix' });
+    setForm({ label: '', amount: '', type: 'entrada', method: 'Pix' });
   };
 
   return (
@@ -103,15 +103,21 @@ export default function CaixaPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-ink-100 bg-white p-4 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Saldo</div>
-          <div className="mt-2 text-2xl font-semibold text-ink-900">R$ {formatBRL(totals.saldo)}</div>
+          <div className="mt-2 text-2xl font-semibold text-ink-900">
+            {transactions.length > 0 ? `R$ ${formatBRL(totals.saldo)}` : '—'}
+          </div>
         </div>
         <div className="rounded-2xl border border-ink-100 bg-white p-4 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Entradas</div>
-          <div className="mt-2 text-2xl font-semibold text-emerald-600">R$ {formatBRL(totals.entradas)}</div>
+          <div className="mt-2 text-2xl font-semibold text-emerald-600">
+            {transactions.length > 0 ? `R$ ${formatBRL(totals.entradas)}` : '—'}
+          </div>
         </div>
         <div className="rounded-2xl border border-ink-100 bg-white p-4 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Saídas</div>
-          <div className="mt-2 text-2xl font-semibold text-rose-500">R$ {formatBRL(totals.saidas)}</div>
+          <div className="mt-2 text-2xl font-semibold text-rose-500">
+            {transactions.length > 0 ? `R$ ${formatBRL(totals.saidas)}` : '—'}
+          </div>
         </div>
       </div>
 
