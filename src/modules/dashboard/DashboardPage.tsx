@@ -112,13 +112,13 @@ const DashboardPage = () => {
     alert('Item de estoque criado!');
   };
 
-  const rollerData = useMemo(() => [28, 42, 33, 55, 38, 60, 48, 70], []);
+  const rollerData = useMemo(() => [], []);
 
   const handleQuickAction = (type: 'entrada' | 'saida') => {
     const item: ActivityItem = {
       id: `a-${Date.now()}`,
       label: type === 'entrada' ? 'Entrada rapida' : 'Saida rapida',
-      amount: type === 'entrada' ? '+ R$ 120,00' : '- R$ 60,00',
+      amount: '',
       tone: type === 'entrada' ? 'pos' : 'neg',
       time: 'Agora mesmo',
     };
@@ -275,7 +275,7 @@ const DashboardPage = () => {
                       item.tone === 'pos' ? 'text-emerald-600' : item.tone === 'neg' ? 'text-rose-500' : 'text-ink-500'
                     }`}
                   >
-                    {item.amount}
+                    {item.amount || '—'}
                   </span>
                 </div>
               ))}

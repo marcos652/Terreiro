@@ -25,13 +25,14 @@ export default function UsuariosPage() {
   }, [users, search, role]);
 
   const handleInvite = () => {
+    const currentYear = String(new Date().getFullYear());
     setUsers((prev) => [
       {
         id: `u-${Date.now()}`,
         name: 'Novo integrante',
         role: 'Equipe',
         status: 'pendente',
-        since: '2026',
+        since: currentYear,
       },
       ...prev,
     ]);
@@ -116,4 +117,3 @@ export default function UsuariosPage() {
     </AppShell>
   );
 }
-

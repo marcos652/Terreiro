@@ -112,7 +112,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                 })}
               </div>
             </nav>
-            <div className="border-t border-ink-100 px-7 py-5 text-xs text-ink-400">v1.0 • Painel interno</div>
+            <div className="border-t border-ink-100 px-7 py-5 text-xs text-ink-400">Painel interno</div>
           </aside>
           <div className="flex-1">
             <header className="flex flex-col gap-4 border-b border-ink-100 bg-white/75 px-4 py-4 backdrop-blur md:flex-row md:items-center md:justify-between md:px-6 2xl:px-12">

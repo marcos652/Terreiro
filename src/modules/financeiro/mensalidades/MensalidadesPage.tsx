@@ -77,7 +77,10 @@ export default function MensalidadesPage() {
           ? {
               ...member,
               status: member.status === 'pago' ? 'pendente' : 'pago',
-              lastPayment: member.status === 'pago' ? member.lastPayment : '09/02/2026',
+              lastPayment:
+                member.status === 'pago'
+                  ? member.lastPayment
+                  : new Date().toLocaleDateString('pt-BR'),
             }
           : member
       )
@@ -171,7 +174,7 @@ export default function MensalidadesPage() {
               valueFormatter={(value) => `R$ ${formatBRL(value)}`}
             />
           </div>
-          <div className="mt-3 text-xs text-ink-400">Meta atual: R$ 3.000,00 • Atualiza conforme pagamentos</div>
+          <div className="mt-3 text-xs text-ink-400">Meta atual: definida conforme pagamentos</div>
         </div>
       </div>
     </AppShell>

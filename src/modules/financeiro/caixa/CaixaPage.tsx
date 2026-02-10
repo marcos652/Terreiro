@@ -56,7 +56,7 @@ export default function CaixaPage() {
       label: form.label,
       type: form.type as 'entrada' | 'saida',
       amount: Number(form.amount),
-      date: '09/02/2026',
+      date: new Date().toLocaleDateString('pt-BR'),
       method: form.method,
       created_at: new Date().toISOString(),
     };
@@ -220,4 +220,3 @@ export default function CaixaPage() {
     </AppShell>
   );
 }
-
