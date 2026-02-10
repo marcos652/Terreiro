@@ -9,6 +9,8 @@ import {
   Tooltip,
   Filler,
   Legend,
+  type ChartOptions,
+  type TooltipItem,
 } from 'chart.js';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler, Legend);
@@ -57,7 +59,7 @@ export default function RollerCoasterChart({
     [data, labels, strokeColor, fillColor, dotColor]
   );
 
-  const options = useMemo(
+  const options: ChartOptions<'line'> = useMemo(
     () => ({
       responsive: true,
       maintainAspectRatio: false,
@@ -65,8 +67,9 @@ export default function RollerCoasterChart({
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: (context: { parsed?: { y?: number } }) => {
-              const value = context.parsed?.y ?? 0;
+            label: (context: TooltipItem<'line'>) => {
+              const raw = context.parsed?.y;
+              const value = typeof raw === 'number' ? raw : 0;
               return valueFormatter ? valueFormatter(value) : String(value);
             },
           },
