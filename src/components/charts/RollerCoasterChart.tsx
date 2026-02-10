@@ -88,19 +88,15 @@ export default function RollerCoasterChart({
 
   if (!data || data.length === 0) {
     return (
-      <div className="flex h-full w-full items-center justify-center rounded-2xl border border-ink-100 bg-white/85 p-6 text-xs text-ink-400 shadow-floating">
+      <div className="flex h-full w-full items-center justify-center text-xs text-ink-400">
         Sem dados para o gráfico
       </div>
     );
   }
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-2xl border border-ink-100 bg-white/85 p-4 shadow-floating">
-      <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_top,_rgba(124,58,237,0.12),_rgba(255,255,255,0))]" />
-      <div className="absolute inset-0 rounded-2xl bg-[linear-gradient(90deg,_rgba(148,163,184,0.10)_1px,_transparent_1px),linear-gradient(0deg,_rgba(148,163,184,0.10)_1px,_transparent_1px)] [background-size:42px_32px] opacity-60" />
-      <div className="relative z-10 h-full w-full" style={{ height }}>
-        <Line data={chartData} options={options} />
-      </div>
+    <div className="h-full w-full" style={{ height }}>
+      <Line data={chartData} options={options} />
     </div>
   );
 }
