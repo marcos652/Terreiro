@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@services/firebase';
+import { auth, firebaseConfigMissing } from '@services/firebase';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -20,7 +20,9 @@ export default function LoginPage() {
     setInfo('');
     try {
       if (!auth) {
-        setError('Configuracao do Firebase nao encontrada.');
+        const missing =
+          firebaseConfigMissing.length > 0 ? ` (${firebaseConfigMissing.join(', ')})` : '';
+        setError(`Configuracao do Firebase nao encontrada.${missing}`);
         setLoading(false);
         return;
       }
@@ -47,7 +49,9 @@ export default function LoginPage() {
     setInfo('');
     try {
       if (!auth) {
-        setError('Configuracao do Firebase nao encontrada.');
+        const missing =
+          firebaseConfigMissing.length > 0 ? ` (${firebaseConfigMissing.join(', ')})` : '';
+        setError(`Configuracao do Firebase nao encontrada.${missing}`);
         setLoading(false);
         return;
       }

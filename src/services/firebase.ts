@@ -18,12 +18,15 @@ const firebaseConfig = {
 
 const isBrowser = typeof window !== 'undefined';
 const requiredConfig = [
-  firebaseConfig.apiKey,
-  firebaseConfig.authDomain,
-  firebaseConfig.projectId,
-  firebaseConfig.appId,
-];
-const hasConfig = requiredConfig.every(Boolean);
+  ['NEXT_PUBLIC_FIREBASE_API_KEY', firebaseConfig.apiKey],
+  ['NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN', firebaseConfig.authDomain],
+  ['NEXT_PUBLIC_FIREBASE_PROJECT_ID', firebaseConfig.projectId],
+  ['NEXT_PUBLIC_FIREBASE_APP_ID', firebaseConfig.appId],
+] as const;
+const missingFirebaseConfig = requiredConfig
+  .filter(([, value]) => !value)
+  .map(([key]) => key);
+const hasConfig = missingFirebaseConfig.length === 0;
 
 const app =
   isBrowser && hasConfig
@@ -34,6 +37,7 @@ const app =
 
 export const db: Firestore = app ? getFirestore(app) : (null as unknown as Firestore);
 export const auth: Auth = app ? getAuth(app) : (null as unknown as Auth);
+export const firebaseConfigMissing = missingFirebaseConfig;
 
 // Analytics should only be initialized in the browser.
 let analytics: import('firebase/analytics').Analytics | undefined = undefined;
