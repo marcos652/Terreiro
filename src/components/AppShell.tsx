@@ -80,6 +80,7 @@ const navItems = [
 export default function AppShell({ title, subtitle, actions, children }: AppShellProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const canSignOut = Boolean(auth);
 
   return (
     <div className="min-h-screen bg-sand-50 text-ink-900">
@@ -164,8 +165,14 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                     </span>
                   )}
                   <button
-                    onClick={() => signOut(auth)}
-                    className="w-full rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-ink-300 sm:w-auto"
+                    onClick={() => {
+                      if (!auth) {
+                        return;
+                      }
+                      signOut(auth);
+                    }}
+                    disabled={!canSignOut}
+                    className={`w-full rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-ink-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto`}
                   >
                     Sair
                   </button>

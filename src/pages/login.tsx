@@ -19,6 +19,10 @@ export default function LoginPage() {
     setError('');
     setInfo('');
     try {
+      if (!auth) {
+        setError('Configuracao do Firebase nao encontrada.');
+        return;
+      }
       if (mode === 'register') {
         await createUserWithEmailAndPassword(auth, email, password);
       } else {
@@ -41,6 +45,10 @@ export default function LoginPage() {
     setError('');
     setInfo('');
     try {
+      if (!auth) {
+        setError('Configuracao do Firebase nao encontrada.');
+        return;
+      }
       await sendPasswordResetEmail(auth, email);
       setInfo('Enviamos um e-mail com o link de recuperacao.');
     } catch (err: any) {

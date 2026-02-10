@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { db } from '@services/firebase';
 import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@services/firebase';
 
 export function useTestFirestore() {
   const [data, setData] = useState<any[]>([]);
@@ -10,9 +10,13 @@ export function useTestFirestore() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // Busca todos os documentos da coleção "users"
+        // Fetch all documents from "users".
+        if (!db) {
+          setError('Configuracao do Firebase nao encontrada.');
+          return;
+        }
         const querySnapshot = await getDocs(collection(db, 'users'));
-        const docs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const docs = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         setData(docs);
       } catch (err: any) {
         setError(err.message);

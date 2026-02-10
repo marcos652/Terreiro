@@ -39,7 +39,7 @@ const DashboardPage = () => {
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !db) return;
 
     const cashRef = collection(db, COLLECTIONS.CASH_TRANSACTIONS);
     const cashUnsub = onSnapshot(cashRef, (snapshot) => {
@@ -95,6 +95,10 @@ const DashboardPage = () => {
   }, [user]);
 
   const handleCreateStock = async () => {
+    if (!db) {
+      alert('Configuracao do Firebase nao encontrada.');
+      return;
+    }
     await addStockItem({
       category: 'Velas',
       name: 'Vela Branca Pequena',
@@ -122,6 +126,10 @@ const DashboardPage = () => {
   };
 
   const handleSeed = async () => {
+    if (!db) {
+      alert('Configuracao do Firebase nao encontrada.');
+      return;
+    }
     setSeeding(true);
     try {
       await seedFirestoreBaseData();
