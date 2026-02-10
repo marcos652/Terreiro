@@ -72,36 +72,36 @@ export default function LoginPage() {
         <div className="pointer-events-none absolute right-10 top-1/2 h-80 w-80 -translate-y-1/2 rounded-full bg-emerald-300/25 blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-sky-300/25 blur-3xl" />
 
-        <div className="relative mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 md:px-8">
-          <div className="grid w-full gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 md:px-10">
+          <div className="grid w-full gap-12 lg:grid-cols-[1.05fr_0.95fr]">
             <div className="flex flex-col justify-center gap-6">
               <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.4em] text-ink-400">
                 Terreiro
               </div>
-              <h1 className="font-display text-4xl font-semibold leading-tight text-ink-900 md:text-5xl">
+              <h1 className="font-display text-5xl font-semibold leading-tight text-ink-900 md:text-6xl">
                 SEJA BEM-VINDO, QUE OS ORIXAS DE GUIE
               </h1>
-              <p className="max-w-md text-base text-ink-500">
-                Acesse o painel com seguranÃ§a para acompanhar rituais, estoque e financeiro em um
-                Ãºnico lugar.
+              <p className="max-w-md text-lg text-ink-500">
+                Acesse o painel com seguranca para acompanhar rituais, estoque e financeiro em um
+                unico lugar.
               </p>
               <div className="flex flex-wrap items-center gap-3 text-xs text-ink-400">
                 <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Seguro</span>
                 <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Organizado</span>
-                <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">ConfiÃ¡vel</span>
+                <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Confiavel</span>
               </div>
             </div>
 
             <form
               onSubmit={handleLogin}
-              className="w-full rounded-[32px] border border-ink-100/80 bg-white/85 p-8 shadow-[0_40px_90px_-60px_rgba(15,23,42,0.6)] backdrop-blur md:p-10 lg:p-12"
+              className="w-full rounded-[36px] border border-ink-100/80 bg-white/90 p-10 shadow-[0_50px_110px_-70px_rgba(15,23,42,0.65)] backdrop-blur md:p-12 lg:p-14"
             >
               <div className="mb-6">
                 <div className="text-xs uppercase tracking-[0.3em] text-ink-300">Acesso</div>
-                <h2 className="font-display text-3xl font-semibold text-ink-900">
+                <h2 className="font-display text-4xl font-semibold text-ink-900">
                   {mode === 'register' ? 'Criar conta' : 'Entrar no painel'}
                 </h2>
-                <p className="text-base text-ink-500">
+                <p className="text-lg text-ink-500">
                   {mode === 'register'
                     ? 'Cadastre um novo acesso para o painel.'
                     : 'Use seu e-mail e senha cadastrados.'}
@@ -136,7 +136,7 @@ export default function LoginPage() {
                   placeholder="voce@terreiro.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-2xl border border-ink-100 bg-white px-4 py-3.5 text-base text-ink-700 shadow-sm focus:border-ink-900 focus:outline-none focus:ring-2 focus:ring-ink-200"
+                  className="w-full rounded-2xl border border-ink-100 bg-white px-5 py-4 text-lg text-ink-700 shadow-sm focus:border-ink-900 focus:outline-none focus:ring-2 focus:ring-ink-200"
                   required
                 />
                 <label className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">
@@ -148,7 +148,7 @@ export default function LoginPage() {
                     placeholder="Digite sua senha"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-2xl border border-ink-100 bg-white px-4 py-3.5 text-base text-ink-700 shadow-sm focus:border-ink-900 focus:outline-none focus:ring-2 focus:ring-ink-200"
+                    className="w-full rounded-2xl border border-ink-100 bg-white px-5 py-4 text-lg text-ink-700 shadow-sm focus:border-ink-900 focus:outline-none focus:ring-2 focus:ring-ink-200"
                     required
                   />
                   <button
@@ -163,7 +163,7 @@ export default function LoginPage() {
                 {info && <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{info}</div>}
                 <button
                   type="submit"
-                  className="mt-2 w-full rounded-2xl bg-ink-900 py-3.5 text-base font-semibold text-white shadow-lg hover:bg-ink-800 transition"
+                  className="mt-2 w-full rounded-2xl bg-ink-900 py-4 text-lg font-semibold text-white shadow-lg hover:bg-ink-800 transition"
                   disabled={loading}
                 >
                   {loading ? 'Processando...' : mode === 'register' ? 'Criar conta' : 'Entrar'}
