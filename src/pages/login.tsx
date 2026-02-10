@@ -65,28 +65,36 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-sand-50 text-ink-900">
+    <div className="min-h-screen bg-[#f7f5f0] text-ink-900">
       <div className="relative min-h-screen overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.2),_rgba(255,255,255,0))]" />
-        <div className="pointer-events-none absolute -right-32 top-20 h-64 w-64 rounded-full bg-teal-600/15 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 left-0 h-72 w-72 rounded-full bg-coral-400/20 blur-3xl" />
-        <div className="relative mx-auto flex min-h-screen w-full max-w-5xl items-center px-4 md:px-6">
-          <div className="grid w-full gap-8 md:grid-cols-[1.2fr_1fr]">
-            <div className="hidden flex-col justify-center gap-6 md:flex">
-              <div className="text-xs uppercase tracking-[0.3em] text-ink-400">Terreiro</div>
-              <h1 className="font-display text-4xl font-semibold text-ink-900">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(148,163,184,0.20),_rgba(247,245,240,0.8))]" />
+        <div className="pointer-events-none absolute -left-24 top-10 h-64 w-64 rounded-full bg-amber-300/25 blur-3xl" />
+        <div className="pointer-events-none absolute right-10 top-1/2 h-80 w-80 -translate-y-1/2 rounded-full bg-emerald-300/25 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-sky-300/25 blur-3xl" />
+
+        <div className="relative mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 md:px-8">
+          <div className="grid w-full gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="flex flex-col justify-center gap-6">
+              <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.4em] text-ink-400">
+                Terreiro
+              </div>
+              <h1 className="font-display text-4xl font-semibold leading-tight text-ink-900 md:text-5xl">
                 SEJA BEM-VINDO, QUE OS ORIXAS DE GUIE
               </h1>
-              <p className="text-sm text-ink-500">Entre para continuar.</p>
-              <div className="flex items-center gap-3 text-xs text-ink-400">
-                <span className="rounded-full border border-ink-200 px-3 py-1">Seguro</span>
-                <span className="rounded-full border border-ink-200 px-3 py-1">Organizado</span>
-                <span className="rounded-full border border-ink-200 px-3 py-1">Confiavel</span>
+              <p className="max-w-md text-base text-ink-500">
+                Acesse o painel com seguranÃ§a para acompanhar rituais, estoque e financeiro em um
+                Ãºnico lugar.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 text-xs text-ink-400">
+                <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Seguro</span>
+                <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Organizado</span>
+                <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">ConfiÃ¡vel</span>
               </div>
             </div>
+
             <form
               onSubmit={handleLogin}
-              className="w-full rounded-3xl border border-ink-100 bg-white/90 p-6 shadow-xl backdrop-blur md:p-8"
+              className="w-full rounded-3xl border border-ink-100/80 bg-white/80 p-6 shadow-[0_30px_80px_-60px_rgba(15,23,42,0.6)] backdrop-blur md:p-8"
             >
               <div className="mb-6">
                 <div className="text-xs uppercase tracking-[0.3em] text-ink-300">Acesso</div>
@@ -104,7 +112,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setMode('login')}
-                    className={`rounded-full px-3 py-1 ${
+                    className={`rounded-full px-4 py-1 ${
                       mode === 'login' ? 'bg-ink-900 text-white' : 'bg-ink-100'
                     }`}
                   >
@@ -113,7 +121,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setMode('register')}
-                    className={`rounded-full px-3 py-1 ${
+                    className={`rounded-full px-4 py-1 ${
                       mode === 'register' ? 'bg-ink-900 text-white' : 'bg-ink-100'
                     }`}
                   >
@@ -128,7 +136,7 @@ export default function LoginPage() {
                   placeholder="voce@terreiro.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-ink-100 bg-white px-4 py-3 text-sm text-ink-700 shadow-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
+                  className="w-full rounded-2xl border border-ink-100 bg-white px-4 py-3 text-sm text-ink-700 shadow-sm focus:border-ink-900 focus:outline-none focus:ring-2 focus:ring-ink-200"
                   required
                 />
                 <label className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">
@@ -140,7 +148,7 @@ export default function LoginPage() {
                     placeholder="Digite sua senha"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-xl border border-ink-100 bg-white px-4 py-3 text-sm text-ink-700 shadow-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
+                    className="w-full rounded-2xl border border-ink-100 bg-white px-4 py-3 text-sm text-ink-700 shadow-sm focus:border-ink-900 focus:outline-none focus:ring-2 focus:ring-ink-200"
                     required
                   />
                   <button
@@ -155,7 +163,7 @@ export default function LoginPage() {
                 {info && <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{info}</div>}
                 <button
                   type="submit"
-                  className="mt-2 w-full rounded-xl bg-ink-900 py-3 text-sm font-semibold text-white shadow-lg hover:bg-ink-700 transition"
+                  className="mt-2 w-full rounded-2xl bg-ink-900 py-3 text-sm font-semibold text-white shadow-lg hover:bg-ink-800 transition"
                   disabled={loading}
                 >
                   {loading ? 'Processando...' : mode === 'register' ? 'Criar conta' : 'Entrar'}
