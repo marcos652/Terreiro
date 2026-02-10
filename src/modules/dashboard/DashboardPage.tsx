@@ -32,6 +32,8 @@ const DashboardPage = () => {
   const [hasCashData, setHasCashData] = useState(false);
   const [hasMembershipData, setHasMembershipData] = useState(false);
   const [hasStockData, setHasStockData] = useState(false);
+  const [cashSeries, setCashSeries] = useState<number[]>([]);
+  const [cashLabels, setCashLabels] = useState<string[]>([]);
   const [nextEvent, setNextEvent] = useState<{ date: string; time: string; title: string } | null>(null);
 
   useEffect(() => {
@@ -48,6 +50,7 @@ const DashboardPage = () => {
       let entradas = 0;
       let saidas = 0;
       const recentActivity: ActivityItem[] = [];
+      const byDate = new Map<string, number>();
       setHasCashData(!snapshot.empty);
       snapshot.forEach((docSnap) => {
         const data = docSnap.data() as { type: 'entrada' | 'saida'; amount: number };
@@ -58,6 +61,12 @@ const DashboardPage = () => {
             : '—';
         if (data.type === 'entrada') entradas += Number(data.amount || 0);
         if (data.type === 'saida') saidas += Number(data.amount || 0);
+        const dateLabel = (data as { date?: string }).date || '';
+        if (dateLabel) {
+          const current = byDate.get(dateLabel) || 0;
+          const signed = data.type === 'entrada' ? amountValue : -amountValue;
+          byDate.set(dateLabel, current + signed);
+        }
         recentActivity.push({
           id: docSnap.id,
           label: (data as { label?: string }).label || 'Movimento',
@@ -67,6 +76,19 @@ const DashboardPage = () => {
         });
       });
       setCashTotal(entradas - saidas);
+      const sorted = Array.from(byDate.entries()).sort((a, b) => {
+        const parse = (value: string) => {
+          const parts = value.split('/');
+          if (parts.length !== 3) return 0;
+          const day = Number(parts[0]);
+          const month = Number(parts[1]) - 1;
+          const year = Number(parts[2]);
+          return new Date(year, month, day).getTime();
+        };
+        return parse(a[0]) - parse(b[0]);
+      });
+      setCashLabels(sorted.map(([label]) => label));
+      setCashSeries(sorted.map(([, value]) => value));
       setActivity(recentActivity.slice(0, 5));
     });
 
@@ -113,7 +135,7 @@ const DashboardPage = () => {
     };
   }, [user]);
 
-  const rollerData = useMemo(() => [], []);
+  const rollerData = useMemo(() => cashSeries, [cashSeries]);
 
   const handleSeed = async () => {
     if (!db) {
@@ -227,6 +249,8 @@ const DashboardPage = () => {
               strokeColor="#7c3aed"
               fillColor="rgba(124,58,237,0.32)"
               dotColor="#6d28d9"
+              labels={cashLabels}
+              valueFormatter={(value) => `R$ ${formatBRL(value)}`}
             />
           </div>
 
