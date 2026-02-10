@@ -1,21 +1,27 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
-
-type EventItem = {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  leader: string;
-  status: 'confirmado' | 'pendente';
-};
-
-const initialEvents: EventItem[] = [];
+import { addEvent, EventItem, getEvents } from '@services/eventService';
 
 export default function EventosPage() {
-  const [events, setEvents] = useState<EventItem[]>(initialEvents);
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'todos' | 'confirmado' | 'pendente'>('todos');
   const [form, setForm] = useState({ title: '', date: '', time: '', leader: '' });
+
+  useEffect(() => {
+    let active = true;
+    getEvents()
+      .then((data) => {
+        if (!active) return;
+        setEvents(data);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     if (filter === 'todos') {
@@ -24,21 +30,20 @@ export default function EventosPage() {
     return events.filter((event) => event.status === filter);
   }, [events, filter]);
 
-  const handleAddEvent = () => {
+  const handleAddEvent = async () => {
     if (!form.title || !form.date || !form.time || !form.leader) {
       return;
     }
-    setEvents((prev) => [
-      {
-        id: `e-${Date.now()}`,
-        title: form.title,
-        date: form.date,
-        time: form.time,
-        leader: form.leader,
-        status: 'pendente',
-      },
-      ...prev,
-    ]);
+    const payload: Omit<EventItem, 'id'> = {
+      title: form.title,
+      date: form.date,
+      time: form.time,
+      leader: form.leader,
+      status: 'pendente',
+      created_at: new Date().toISOString(),
+    };
+    const id = await addEvent(payload);
+    setEvents((prev) => [{ id, ...payload }, ...prev]);
     setForm({ title: '', date: '', time: '', leader: '' });
   };
 
@@ -144,6 +149,9 @@ export default function EventosPage() {
                 </div>
               </div>
             ))}
+            {loading && (
+              <div className="py-8 text-center text-sm text-ink-400">Carregando eventos...</div>
+            )}
             {filtered.length === 0 && (
               <div className="py-8 text-center text-sm text-ink-400">Nenhum evento para este filtro.</div>
             )}
@@ -153,4 +161,3 @@ export default function EventosPage() {
     </AppShell>
   );
 }
-

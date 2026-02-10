@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '@contexts/AuthContext';
 import { useTestFirestore } from './useTestFirestore';
-import { addStockItem } from '../../services/stockService';
 import AppShell from '@components/AppShell';
 import RollerCoasterChart from '@components/charts/RollerCoasterChart';
 import { seedFirestoreBaseData } from '@services/seedService';
@@ -45,12 +44,26 @@ const DashboardPage = () => {
     const cashUnsub = onSnapshot(cashRef, (snapshot) => {
       let entradas = 0;
       let saidas = 0;
+      const recentActivity: ActivityItem[] = [];
       snapshot.forEach((docSnap) => {
         const data = docSnap.data() as { type: 'entrada' | 'saida'; amount: number };
+        const amountValue = Number(data.amount || 0);
+        const amountLabel =
+          amountValue > 0
+            ? `${data.type === 'entrada' ? '+' : '-'} R$ ${formatBRL(amountValue)}`
+            : '—';
         if (data.type === 'entrada') entradas += Number(data.amount || 0);
         if (data.type === 'saida') saidas += Number(data.amount || 0);
+        recentActivity.push({
+          id: docSnap.id,
+          label: (data as { label?: string }).label || 'Movimento',
+          amount: amountLabel,
+          tone: data.type === 'entrada' ? 'pos' : 'neg',
+          time: (data as { date?: string }).date || '',
+        });
       });
       setCashTotal(entradas - saidas);
+      setActivity(recentActivity.slice(0, 5));
     });
 
     const membershipRef = collection(db, COLLECTIONS.MEMBERSHIPS);
@@ -94,36 +107,7 @@ const DashboardPage = () => {
     };
   }, [user]);
 
-  const handleCreateStock = async () => {
-    if (!db) {
-      alert('Configuracao do Firebase nao encontrada.');
-      return;
-    }
-    await addStockItem({
-      category: 'Item',
-      name: 'Novo item',
-      color: 'N/A',
-      quantity: 0,
-      unit: 'unidade',
-      price: 0,
-      supplier: 'N/A',
-      created_at: new Date().toISOString(),
-    });
-    alert('Item de estoque criado!');
-  };
-
   const rollerData = useMemo(() => [], []);
-
-  const handleQuickAction = (type: 'entrada' | 'saida') => {
-    const item: ActivityItem = {
-      id: `a-${Date.now()}`,
-      label: type === 'entrada' ? 'Entrada rapida' : 'Saida rapida',
-      amount: '',
-      tone: type === 'entrada' ? 'pos' : 'neg',
-      time: 'Agora mesmo',
-    };
-    setActivity((prev) => [item, ...prev].slice(0, 5));
-  };
 
   const handleSeed = async () => {
     if (!db) {
@@ -155,18 +139,6 @@ const DashboardPage = () => {
             className="w-full rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-ink-300 disabled:opacity-60 sm:w-auto"
           >
             {seeding ? 'Criando campos...' : 'Criar campos base'}
-          </button>
-          <button
-            onClick={() => handleQuickAction('entrada')}
-            className="w-full rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-500 sm:w-auto"
-          >
-            Nova entrada
-          </button>
-          <button
-            onClick={() => handleQuickAction('saida')}
-            className="w-full rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-ink-300 sm:w-auto"
-          >
-            Nova saida
           </button>
         </div>
       }
@@ -211,12 +183,6 @@ const DashboardPage = () => {
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Estoque critico</div>
           <div className="mt-2 text-2xl font-semibold text-ink-900">{criticalStock} itens</div>
           <div className="mt-2 text-sm text-ink-500">Sem informacoes</div>
-          <button
-            onClick={handleCreateStock}
-            className="mt-3 rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-600 hover:border-ink-300"
-          >
-            Criar item rapido
-          </button>
         </div>
       </div>
 

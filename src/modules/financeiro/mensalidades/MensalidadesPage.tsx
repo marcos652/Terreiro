@@ -1,23 +1,30 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
 import RollerCoasterChart from '@components/charts/RollerCoasterChart';
-
-type MemberItem = {
-  id: string;
-  name: string;
-  value: number;
-  status: 'pago' | 'pendente';
-  lastPayment: string;
-};
-
-const initialMembers: MemberItem[] = [];
+import { getMemberships, MembershipItem, updateMembership } from '@services/membershipService';
 
 export default function MensalidadesPage() {
   const formatBRL = (value: number) =>
     new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
-  const [members, setMembers] = useState<MemberItem[]>(initialMembers);
+  const [members, setMembers] = useState<MembershipItem[]>([]);
   const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+  useEffect(() => {
+    let active = true;
+    getMemberships()
+      .then((data) => {
+        if (!active) return;
+        setMembers(data);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const parseBRDate = (value: string) => {
     const parts = value.split('/');
@@ -70,19 +77,15 @@ export default function MensalidadesPage() {
     };
   }, [members]);
 
-  const handleToggle = (id: string) => {
+  const handleToggle = async (member: MembershipItem) => {
+    if (!member.id) return;
+    const nextStatus = member.status === 'pago' ? 'pendente' : 'pago';
+    const nextPayment =
+      nextStatus === 'pago' ? new Date().toLocaleDateString('pt-BR') : member.lastPayment;
+    await updateMembership(member.id, { status: nextStatus, lastPayment: nextPayment });
     setMembers((prev) =>
-      prev.map((member) =>
-        member.id === id
-          ? {
-              ...member,
-              status: member.status === 'pago' ? 'pendente' : 'pago',
-              lastPayment:
-                member.status === 'pago'
-                  ? member.lastPayment
-                  : new Date().toLocaleDateString('pt-BR'),
-            }
-          : member
+      prev.map((item) =>
+        item.id === member.id ? { ...item, status: nextStatus, lastPayment: nextPayment } : item
       )
     );
   };
@@ -145,7 +148,7 @@ export default function MensalidadesPage() {
                       {member.status === 'pago' ? 'Pago' : 'Pendente'}
                     </span>
                     <button
-                      onClick={() => handleToggle(member.id)}
+                      onClick={() => handleToggle(member)}
                       className="rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-600 hover:border-ink-300"
                     >
                       Alternar
@@ -154,6 +157,9 @@ export default function MensalidadesPage() {
                 </div>
               </div>
             ))}
+            {loading && (
+              <div className="py-8 text-center text-sm text-ink-400">Carregando membros...</div>
+            )}
             {filtered.length === 0 && (
               <div className="py-8 text-center text-sm text-ink-400">Nenhum membro encontrado.</div>
             )}

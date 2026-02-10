@@ -1,20 +1,27 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
-
-type UserItem = {
-  id: string;
-  name: string;
-  role: string;
-  status: 'ativo' | 'pendente';
-  since: string;
-};
-
-const initialUsers: UserItem[] = [];
+import { getUsers, User } from '@services/userService';
 
 export default function UsuariosPage() {
-  const [users, setUsers] = useState<UserItem[]>(initialUsers);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('Todos');
+
+  useEffect(() => {
+    let active = true;
+    getUsers()
+      .then((data) => {
+        if (!active) return;
+        setUsers(data);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     return users.filter((user) => {
@@ -24,32 +31,22 @@ export default function UsuariosPage() {
     });
   }, [users, search, role]);
 
-  const handleInvite = () => {
-    const currentYear = String(new Date().getFullYear());
-    setUsers((prev) => [
-      {
-        id: `u-${Date.now()}`,
-        name: 'Novo integrante',
-        role: 'Equipe',
-        status: 'pendente',
-        since: currentYear,
-      },
-      ...prev,
-    ]);
+  const roles = useMemo(() => {
+    const unique = new Set(users.map((user) => user.role).filter(Boolean));
+    return Array.from(unique);
+  }, [users]);
+
+  const formatYear = (value?: string) => {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return String(date.getFullYear());
   };
 
   return (
     <AppShell
       title="Usuários"
       subtitle="Gestão de acesso, equipes e permissões."
-      actions={
-        <button
-          onClick={handleInvite}
-          className="w-full rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 sm:w-auto"
-        >
-          Convidar usuário
-        </button>
-      }
     >
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_2fr]">
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
@@ -67,11 +64,9 @@ export default function UsuariosPage() {
               onChange={(event) => setRole(event.target.value)}
             >
               <option>Todos</option>
-              <option>Financeiro</option>
-              <option>Liturgia</option>
-              <option>Acolhimento</option>
-              <option>Comunicação</option>
-              <option>Equipe</option>
+              {roles.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
             </select>
             <div className="rounded-xl border border-ink-100 bg-ink-50 p-3 text-xs text-ink-500">
               Mantenha o cadastro atualizado para garantir mensagens e avisos.
@@ -89,15 +84,8 @@ export default function UsuariosPage() {
                     <div className="text-sm font-semibold text-ink-900">{user.name}</div>
                     <div className="text-xs text-ink-400">{user.role}</div>
                   </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      user.status === 'ativo' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                    }`}
-                  >
-                    {user.status === 'ativo' ? 'Ativo' : 'Pendente'}
-                  </span>
                 </div>
-                <div className="mt-3 text-xs text-ink-400">No terreiro desde {user.since}</div>
+                <div className="mt-3 text-xs text-ink-400">No terreiro desde {formatYear(user.created_at)}</div>
                 <div className="mt-3 flex gap-2">
                   <button className="rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-600 hover:border-ink-300">
                     Editar
@@ -111,6 +99,9 @@ export default function UsuariosPage() {
           </div>
           {filtered.length === 0 && (
             <div className="py-8 text-center text-sm text-ink-400">Nenhum usuário encontrado.</div>
+          )}
+          {loading && (
+            <div className="py-8 text-center text-sm text-ink-400">Carregando usuários...</div>
           )}
         </div>
       </div>
