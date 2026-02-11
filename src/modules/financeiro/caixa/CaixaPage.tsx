@@ -136,7 +136,7 @@ export default function CaixaPage() {
               className="rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
               placeholder="Valor"
               value={form.amount}
-              onChange={(event) => setForm((prev) => ({ ...prev, amount: Number(event.target.value) }))}
+              onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))}
             />
             <div className="flex gap-2">
               <select
