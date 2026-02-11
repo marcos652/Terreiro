@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { signOut } from 'firebase/auth';
@@ -91,6 +91,27 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   const router = useRouter();
   const { user } = useAuth();
   const canSignOut = Boolean(auth);
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const savedTheme = window.localStorage.getItem('theme-mode');
+    const shouldUseDark = savedTheme === 'dark';
+    setDarkMode(shouldUseDark);
+  }, []);
+
+  const handleThemeToggle = () => {
+    if (typeof window === 'undefined') return;
+    const nextDarkMode = !darkMode;
+    setDarkMode(nextDarkMode);
+    if (nextDarkMode) {
+      document.documentElement.classList.add('theme-dark');
+      window.localStorage.setItem('theme-mode', 'dark');
+      return;
+    }
+    document.documentElement.classList.remove('theme-dark');
+    window.localStorage.setItem('theme-mode', 'light');
+  };
 
   return (
     <div className="min-h-screen bg-sand-50 text-ink-900">
@@ -99,8 +120,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
         <div className="flex min-h-screen">
           <aside className="hidden w-72 flex-shrink-0 border-r border-gray-800 bg-black backdrop-blur md:flex md:flex-col lg:w-80">
             <div className="px-7 py-7">
-              <div className="text-sm uppercase tracking-[0.2em] text-gray-400">Terreiro</div>
-              <div className="font-display text-2xl font-semibold text-white">Admin</div>
+              <div className="font-display text-2xl font-semibold text-white">Ile Luz e Fe</div>
             </div>
             <nav className="flex-1 px-5 pb-6">
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 mb-4">Navegação</div>
@@ -168,6 +188,30 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                   </button>
                 </div>
                 {actions}
+                <button
+                  type="button"
+                  onClick={handleThemeToggle}
+                  className="group inline-flex w-full items-center justify-between gap-3 rounded-2xl border border-ink-200 bg-white px-3 py-2 text-left shadow-sm transition hover:border-ink-300 sm:w-auto"
+                  role="switch"
+                  aria-checked={darkMode}
+                  aria-label={darkMode ? 'Desativar modo escuro' : 'Ativar modo escuro'}
+                  title={darkMode ? 'Desativar modo escuro' : 'Ativar modo escuro'}
+                >
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-500">
+                    {darkMode ? 'Escuro' : 'Claro'}
+                  </span>
+                  <span
+                    className={`relative h-7 w-12 rounded-full transition ${
+                      darkMode ? 'bg-emerald-500' : 'bg-ink-200'
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-transform ${
+                        darkMode ? 'translate-x-5' : 'translate-x-0.5'
+                      }`}
+                    />
+                  </span>
+                </button>
                 <div className="flex items-center gap-2">
                   {user?.email && (
                     <span className="hidden rounded-full border border-ink-100 bg-white px-3 py-2 text-xs font-semibold text-ink-500 md:inline-flex">
