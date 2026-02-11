@@ -7,7 +7,7 @@ import { useNotifications } from '@contexts/NotificationContext';
 export default function EventosPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'todos' | 'confirmado' | 'pendente'>('todos');
+  const [filter, setFilter] = useState<'todos' | 'confirmado' | 'pendente' | 'cancelado'>('todos');
   const [form, setForm] = useState({ title: '', date: '', time: '', leader: '' });
   const { profile } = useAuth();
   const isMaster = profile?.role === 'MASTER';
@@ -62,6 +62,12 @@ export default function EventosPage() {
     if (!confirmed) return;
     await deleteEvent(event.id);
     setEvents((prev) => prev.filter((item) => item.id !== event.id));
+  };
+
+  const handleStatusChange = async (event: EventItem, status: EventItem['status']) => {
+    if (!event.id) return;
+    await updateEvent(event.id, { status });
+    setEvents((prev) => prev.map((item) => (item.id === event.id ? { ...item, status } : item)));
   };
 
   return (
@@ -147,6 +153,14 @@ export default function EventosPage() {
               >
                 Pendentes
               </button>
+              <button
+                onClick={() => setFilter('cancelado')}
+                className={`rounded-full px-3 py-1 ${
+                  filter === 'cancelado' ? 'bg-rose-500 text-white' : 'bg-ink-100'
+                }`}
+              >
+                Cancelados
+              </button>
             </div>
           </div>
           <div className="mt-4 flex flex-col gap-3">
@@ -159,22 +173,40 @@ export default function EventosPage() {
                       {event.date} • {event.time} • {event.leader}
                     </div>
                   </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      event.status === 'confirmado'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-amber-100 text-amber-700'
-                    }`}
-                  >
-                    {event.status === 'confirmado' ? 'Confirmado' : 'Pendente'}
-                  </span>
-                  <button
-                    onClick={() => handleDeleteEvent(event)}
-                    disabled={!isMaster}
-                    className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300 disabled:opacity-60"
-                  >
-                    Remover
-                  </button>
+                  <div className="flex flex-col items-end gap-2 md:flex-row md:items-center">
+                    <select
+                      value={event.status}
+                      onChange={(e) => handleStatusChange(event, e.target.value as EventItem['status'])}
+                      disabled={!isMaster}
+                      className="rounded-lg border border-ink-200 bg-white px-3 py-1 text-xs font-semibold text-ink-700 hover:border-ink-300"
+                    >
+                      <option value="pendente">Pendente</option>
+                      <option value="confirmado">Confirmado</option>
+                      <option value="cancelado">Cancelado</option>
+                    </select>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        event.status === 'confirmado'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : event.status === 'cancelado'
+                          ? 'bg-rose-100 text-rose-700'
+                          : 'bg-amber-100 text-amber-700'
+                      }`}
+                    >
+                      {event.status === 'confirmado'
+                        ? 'Confirmado'
+                        : event.status === 'cancelado'
+                        ? 'Cancelado'
+                        : 'Pendente'}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteEvent(event)}
+                      disabled={!isMaster}
+                      className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300 disabled:opacity-60"
+                    >
+                      Remover
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

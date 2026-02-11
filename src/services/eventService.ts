@@ -8,7 +8,7 @@ export interface EventItem {
   date: string;
   time: string;
   leader: string;
-  status: 'confirmado' | 'pendente';
+  status: 'confirmado' | 'pendente' | 'cancelado';
   created_at: string;
 }
 
