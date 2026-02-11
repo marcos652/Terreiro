@@ -22,7 +22,7 @@ export default function LoginPage() {
       if (!auth) {
         const missing =
           firebaseConfigMissing.length > 0 ? ` (${firebaseConfigMissing.join(', ')})` : '';
-        setError(`Configuracao do Firebase nao encontrada.${missing}`);
+        setError(`Configuração do Firebase não encontrada.${missing}`);
         setLoading(false);
         return;
       }
@@ -33,7 +33,7 @@ export default function LoginPage() {
       }
       router.push('/');
     } catch (err: any) {
-      setError(mode === 'register' ? 'Nao foi possivel criar a conta.' : 'Usuario ou senha invalidos.');
+      setError(mode === 'register' ? 'Não foi possível criar a conta.' : 'Usuário ou senha inválidos.');
     } finally {
       setLoading(false);
     }
@@ -51,14 +51,14 @@ export default function LoginPage() {
       if (!auth) {
         const missing =
           firebaseConfigMissing.length > 0 ? ` (${firebaseConfigMissing.join(', ')})` : '';
-        setError(`Configuracao do Firebase nao encontrada.${missing}`);
+        setError(`Configuração do Firebase não encontrada.${missing}`);
         setLoading(false);
         return;
       }
       await sendPasswordResetEmail(auth, email);
-      setInfo('Enviamos um e-mail com o link de recuperacao.');
+      setInfo('Enviamos um e-mail com o link de recuperação.');
     } catch (err: any) {
-      setError('Nao foi possivel enviar o e-mail de recuperacao.');
+      setError('Não foi possível enviar o e-mail de recuperação.');
     } finally {
       setLoading(false);
     }
@@ -79,16 +79,16 @@ export default function LoginPage() {
                 Terreiro
               </div>
               <h1 className="font-display text-5xl font-semibold leading-tight text-ink-900 md:text-6xl">
-                seja bem-vindo, que os orixas te abençoes
+                Seja bem-vindo, que os orixás te abençoem
               </h1>
               <p className="max-w-md text-lg text-ink-500">
-                Acesse o painel com seguranca para acompanhar rituais, estoque e financeiro em um
-                unico lugar.
+                Acesse o painel com segurança para acompanhar rituais, estoque e financeiro em um
+                único lugar.
               </p>
               <div className="flex flex-wrap items-center gap-3 text-xs text-ink-400">
                 <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Seguro</span>
                 <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Organizado</span>
-                <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Confiavel</span>
+                <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Confiável</span>
               </div>
             </div>
 
@@ -177,7 +177,7 @@ export default function LoginPage() {
                   Esqueci minha senha
                 </button>
                 <div className="mt-2 text-center text-xs text-ink-400">
-                  Precisa de acesso? Fale com a administracao.
+                  Precisa de acesso? Fale com a administração.
                 </div>
               </div>
             </form>
