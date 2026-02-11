@@ -1,8 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
+  function isBootstrapMaster() {
+    return request.auth != null && request.auth.uid == "rpdLNx3X4CZhFvB6O9bvXbFA72y1";
+  }
+
   function isMaster() {
-    return request.auth != null
-      && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "MASTER";
+    return isBootstrapMaster()
+      || (request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "MASTER");
   }
 
   match /databases/{database}/documents {
