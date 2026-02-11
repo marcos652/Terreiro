@@ -10,7 +10,7 @@ type Notification = {
 type NotificationContextType = {
   notifications: Notification[];
   addNotification: (notification: Omit<Notification, 'id' | 'read'>) => void;
-  markAsRead: (id: string) => void;
+  markAsRead: (id?: string) => void;
   unreadCount: number;
 };
 
@@ -28,9 +28,12 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     setNotifications((prev) => [newNotification, ...prev]);
   };
 
-  const markAsRead = (id: string) => {
+  const markAsRead = (id?: string) => {
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      prev.map((n) => {
+        if (!id) return { ...n, read: true };
+        return n.id === id ? { ...n, read: true } : n;
+      })
     );
   };
 
