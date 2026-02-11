@@ -20,7 +20,7 @@ type ActivityItem = {
 const DashboardPage = () => {
   const formatBRL = (value: number) =>
     new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
-  const { user, loading } = useAuth();
+  const { user, loading, profile } = useAuth();
   const router = useRouter();
   const { data, loading: loadingData, error } = useTestFirestore();
   const [activity, setActivity] = useState<ActivityItem[]>([]);
@@ -39,6 +39,7 @@ const DashboardPage = () => {
   const [cashLabels, setCashLabels] = useState<string[]>([]);
   const [nextEvent, setNextEvent] = useState<{ date: string; time: string; title: string } | null>(null);
   const [clearingCash, setClearingCash] = useState(false);
+  const isMaster = profile?.role === 'MASTER';
 
   useEffect(() => {
     if (!loading && !user) {
@@ -229,13 +230,13 @@ const DashboardPage = () => {
       subtitle="Panorama geral das financas, presenca e operacoes do terreiro."
       actions={
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <button
-            onClick={handleSeed}
-            disabled={seeding}
-            className="w-full rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-ink-300 disabled:opacity-60 sm:w-auto"
-          >
-            {seeding ? 'Criando campos...' : 'Criar campos base'}
-          </button>
+            <button
+              onClick={handleSeed}
+              disabled={seeding || !isMaster}
+              className="w-full rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-ink-300 disabled:opacity-60 sm:w-auto"
+            >
+              {seeding ? 'Criando campos...' : 'Criar campos base'}
+            </button>
         </div>
       }
     >
@@ -332,7 +333,7 @@ const DashboardPage = () => {
                 <button className="text-xs font-semibold text-ink-400 hover:text-ink-600">Ver tudo</button>
                 <button
                   onClick={handleClearCash}
-                  disabled={clearingCash}
+                  disabled={clearingCash || !isMaster}
                   className="text-xs font-semibold text-rose-500 hover:text-rose-600 disabled:opacity-60"
                 >
                   {clearingCash ? 'Limpando...' : 'Limpar'}
@@ -382,13 +383,14 @@ const DashboardPage = () => {
               <textarea
                 value={focusNote}
                 onChange={(event) => setFocusNote(event.target.value)}
+                readOnly={!isMaster}
                 className="min-h-[140px] w-full rounded-xl border border-ink-200 bg-white p-3 text-sm text-ink-800 shadow-sm focus:border-ink-500 focus:outline-none focus:ring-2 focus:ring-ink-200"
                 placeholder="Ex.: confirmar equipe de acolhimento, separar ervas, revisar som."
               />
             </div>
             <button
               onClick={handleFocusSave}
-              disabled={focusSaving || focusNote.trim().length === 0}
+              disabled={!isMaster || focusSaving || focusNote.trim().length === 0}
               className="mt-3 w-full rounded-xl bg-ink-900 px-4 py-3 text-xs font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
             >
               {focusSaving ? 'Enviando...' : 'Enviar'}

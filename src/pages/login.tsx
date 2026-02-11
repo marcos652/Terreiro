@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, firebaseConfigMissing } from '@services/firebase';
+import { getUserById, upsertUser } from '@services/userService';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -27,9 +28,30 @@ export default function LoginPage() {
         return;
       }
       if (mode === 'register') {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const credential = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = credential.user.uid;
+        const name = email.split('@')[0] || 'Usuário';
+        await upsertUser(uid, {
+          name,
+          email,
+          role: 'MEMBER',
+          status: 'PENDENTE',
+          created_at: new Date().toISOString(),
+        });
+        setInfo('Conta criada. Aguarde a validação do administrador para acessar o painel.');
+        await signOut(auth);
+        setLoading(false);
+        return;
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        const credential = await signInWithEmailAndPassword(auth, email, password);
+        const uid = credential.user.uid;
+        const userDoc = await getUserById(uid);
+        if (!userDoc || userDoc.status !== 'APROVADO') {
+          setError('Seu acesso está em validação pelo administrador.');
+          await signOut(auth);
+          setLoading(false);
+          return;
+        }
       }
       router.push('/');
     } catch (err: any) {

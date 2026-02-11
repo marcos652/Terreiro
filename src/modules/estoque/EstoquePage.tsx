@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
+import { useAuth } from '@contexts/AuthContext';
 import {
   addStockItem,
   clearStockItems,
@@ -28,6 +29,8 @@ export default function EstoquePage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [clearingAll, setClearingAll] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { profile } = useAuth();
+  const isMaster = profile?.role === 'MASTER';
 
   useEffect(() => {
     let active = true;
@@ -127,14 +130,15 @@ export default function EstoquePage() {
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
           <button
             onClick={handleClearAll}
-            disabled={clearingAll}
+            disabled={clearingAll || !isMaster}
             className="w-full rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-600 shadow-sm hover:border-rose-300 disabled:opacity-60 sm:w-auto"
           >
             {clearingAll ? 'Limpando...' : 'Limpar estoque'}
           </button>
           <button
             onClick={handleAddItem}
-            className="w-full rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-400 sm:w-auto"
+            disabled={!isMaster}
+            className="w-full rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-400 disabled:opacity-60 sm:w-auto"
           >
             Adicionar item
           </button>
@@ -239,14 +243,14 @@ export default function EstoquePage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <button
                             onClick={() => handleUpdateQuantity(item, item.quantity - 1)}
-                            disabled={updatingId === item.id}
+                            disabled={!isMaster || updatingId === item.id}
                             className="h-7 w-7 rounded-lg border border-ink-200 text-sm font-semibold text-ink-600 hover:border-ink-300 disabled:opacity-60"
                           >
                             -
                           </button>
                           <button
                             onClick={() => handleUpdateQuantity(item, item.quantity + 1)}
-                            disabled={updatingId === item.id}
+                            disabled={!isMaster || updatingId === item.id}
                             className="h-7 w-7 rounded-lg border border-ink-200 text-sm font-semibold text-ink-600 hover:border-ink-300 disabled:opacity-60"
                           >
                             +
@@ -261,19 +265,20 @@ export default function EstoquePage() {
                                 [item.id as string]: event.target.value,
                               }))
                             }
+                            disabled={!isMaster}
                           />
                           <button
                             onClick={() =>
                               handleUpdateQuantity(item, Number(quantityDrafts[item.id || ''] ?? item.quantity))
                             }
-                            disabled={updatingId === item.id}
+                            disabled={!isMaster || updatingId === item.id}
                             className="rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-600 hover:border-ink-300 disabled:opacity-60"
                           >
                             Atualizar
                           </button>
                           <button
                             onClick={() => handleDeleteItem(item)}
-                            disabled={deletingId === item.id}
+                            disabled={!isMaster || deletingId === item.id}
                             className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300 disabled:opacity-60"
                           >
                             {deletingId === item.id ? 'Removendo...' : 'Remover'}

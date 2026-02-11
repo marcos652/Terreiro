@@ -1,33 +1,52 @@
 rules_version = '2';
 service cloud.firestore {
+  function isMaster() {
+    return request.auth != null
+      && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "MASTER";
+  }
+
   match /databases/{database}/documents {
 
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && (
+          (request.auth.uid == userId
+            && request.resource.data.role == "MEMBER"
+            && request.resource.data.status == "PENDENTE")
+          || isMaster()
+        );
+      allow update, delete: if isMaster();
     }
 
     match /stock_items/{docId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if isMaster();
     }
 
     match /events/{docId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if isMaster();
     }
 
     match /cash_transactions/{docId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if isMaster();
     }
 
     match /memberships/{docId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if isMaster();
     }
 
     match /focus_notes/{docId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if isMaster();
     }
 
     match /cantigas/{docId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if isMaster();
     }
   }
 }

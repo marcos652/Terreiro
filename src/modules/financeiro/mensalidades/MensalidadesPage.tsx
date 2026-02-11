@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
+import { useAuth } from '@contexts/AuthContext';
 import RollerCoasterChart from '@components/charts/RollerCoasterChart';
 import {
   addMembership,
@@ -24,6 +25,8 @@ export default function MensalidadesPage() {
   const [adding, setAdding] = useState(false);
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberValue, setNewMemberValue] = useState('');
+  const { profile } = useAuth();
+  const isMaster = profile?.role === 'MASTER';
   const monthlyGoal = 690;
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   const defaultNames = [
@@ -286,13 +289,13 @@ export default function MensalidadesPage() {
       subtitle="Controle de pagamentos, pendencias e evolucao mensal."
       actions={
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <button
-            onClick={handleResetMembers}
-            disabled={resetting}
-            className="w-full rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-ink-300 disabled:opacity-60 sm:w-auto"
-          >
-            {resetting ? 'Recriando...' : 'Criar lista padr\u00e3o'}
-          </button>
+            <button
+              onClick={handleResetMembers}
+              disabled={resetting || !isMaster}
+              className="w-full rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-ink-300 disabled:opacity-60 sm:w-auto"
+            >
+              {resetting ? 'Recriando...' : 'Criar lista padr\u00e3o'}
+            </button>
           <button
             onClick={handleExport}
             disabled={loading || members.length === 0}
@@ -381,6 +384,7 @@ export default function MensalidadesPage() {
                   placeholder="Nome do membro"
                   value={newMemberName}
                   onChange={(event) => setNewMemberName(event.target.value)}
+                  disabled={!isMaster}
                 />
                 <input
                   type="number"
@@ -388,10 +392,11 @@ export default function MensalidadesPage() {
                   placeholder={`R$ ${formatBRL(defaultMemberValue)}`}
                   value={newMemberValue}
                   onChange={(event) => setNewMemberValue(event.target.value)}
+                  disabled={!isMaster}
                 />
                 <button
                   onClick={handleAddMember}
-                  disabled={adding || newMemberName.trim().length === 0}
+                  disabled={!isMaster || adding || newMemberName.trim().length === 0}
                   className="w-full rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60 md:w-auto"
                 >
                   {adding ? 'Adicionando...' : 'Adicionar'}
@@ -417,13 +422,15 @@ export default function MensalidadesPage() {
                     </span>
                     <button
                       onClick={() => handleToggle(member)}
-                      className="rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-600 hover:border-ink-300"
+                      disabled={!isMaster}
+                      className="rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-600 hover:border-ink-300 disabled:opacity-60"
                     >
                       Alternar
                     </button>
                     <button
                       onClick={() => handleRemoveMember(member)}
-                      className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300"
+                      disabled={!isMaster}
+                      className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300 disabled:opacity-60"
                     >
                       Remover
                     </button>

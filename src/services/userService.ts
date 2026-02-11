@@ -8,6 +8,7 @@ export interface User {
   email: string;
   password?: string; // hash
   role: 'MASTER' | 'MEMBER';
+  status: 'PENDENTE' | 'APROVADO';
   created_at: string;
 }
 
@@ -31,6 +32,11 @@ export async function getUserById(id: string) {
 }
 
 export async function updateUser(id: string, data: Partial<User>) {
+  const docRef = doc(db, COLLECTIONS.USERS, id);
+  await setDoc(docRef, data, { merge: true });
+}
+
+export async function upsertUser(id: string, data: Partial<User>) {
   const docRef = doc(db, COLLECTIONS.USERS, id);
   await setDoc(docRef, data, { merge: true });
 }

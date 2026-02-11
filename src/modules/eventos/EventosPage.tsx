@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
+import { useAuth } from '@contexts/AuthContext';
 import { addEvent, deleteEvent, EventItem, getEvents } from '@services/eventService';
 
 export default function EventosPage() {
@@ -7,6 +8,8 @@ export default function EventosPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'todos' | 'confirmado' | 'pendente'>('todos');
   const [form, setForm] = useState({ title: '', date: '', time: '', leader: '' });
+  const { profile } = useAuth();
+  const isMaster = profile?.role === 'MASTER';
 
   useEffect(() => {
     let active = true;
@@ -62,7 +65,8 @@ export default function EventosPage() {
       actions={
         <button
           onClick={handleAddEvent}
-          className="w-full rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-500 sm:w-auto"
+          disabled={!isMaster}
+          className="w-full rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-500 disabled:opacity-60 sm:w-auto"
         >
           Criar evento
         </button>
@@ -77,6 +81,7 @@ export default function EventosPage() {
               placeholder="Título"
               value={form.title}
               onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
+              disabled={!isMaster}
             />
             <div className="flex gap-2">
               <input
@@ -84,12 +89,14 @@ export default function EventosPage() {
                 placeholder="Data (dd/mm/aaaa)"
                 value={form.date}
                 onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
+                disabled={!isMaster}
               />
               <input
                 className="w-32 rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
                 placeholder="Hora"
                 value={form.time}
                 onChange={(event) => setForm((prev) => ({ ...prev, time: event.target.value }))}
+                disabled={!isMaster}
               />
             </div>
             <input
@@ -97,6 +104,7 @@ export default function EventosPage() {
               placeholder="Responsável"
               value={form.leader}
               onChange={(event) => setForm((prev) => ({ ...prev, leader: event.target.value }))}
+              disabled={!isMaster}
             />
             <div className="rounded-xl border border-ink-100 bg-ink-50 p-3 text-xs text-ink-500">
               Novos eventos entram como pendentes até confirmação.
@@ -156,7 +164,8 @@ export default function EventosPage() {
                   </span>
                   <button
                     onClick={() => handleDeleteEvent(event)}
-                    className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300"
+                    disabled={!isMaster}
+                    className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300 disabled:opacity-60"
                   >
                     Remover
                   </button>

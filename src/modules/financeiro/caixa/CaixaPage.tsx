@@ -1,23 +1,35 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/router';
 import AppShell from '@components/AppShell';
 import {
   addCashTransaction,
   getCashTransactions,
   CashTransaction,
 } from '@services/transactionService';
+import { useAuth } from '@contexts/AuthContext';
 
 const initialTransactions: CashTransaction[] = [];
 
 export default function CaixaPage() {
   const formatBRL = (value: number) =>
     new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+  const { user, loading: authLoading, profile } = useAuth();
+  const router = useRouter();
+  const isMaster = profile?.role === 'MASTER';
   const [transactions, setTransactions] = useState<CashTransaction[]>([]);
   const [filter, setFilter] = useState<'todos' | 'entrada' | 'saida'>('todos');
   const [form, setForm] = useState({ label: '', amount: '', type: 'entrada', method: 'Pix' });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/login');
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
     let active = true;
+    if (!user) return () => {};
     getCashTransactions()
       .then((data) => {
         if (!active) return;
@@ -29,7 +41,7 @@ export default function CaixaPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [user]);
 
   const totals = useMemo(() => {
     const entradas = transactions.filter((t) => t.type === 'entrada').reduce((acc, t) => acc + t.amount, 0);
@@ -65,6 +77,10 @@ export default function CaixaPage() {
     setForm({ label: '', amount: '', type: 'entrada', method: 'Pix' });
   };
 
+  if (authLoading || (!user && typeof window !== 'undefined')) {
+    return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
+  }
+
   return (
     <AppShell
       title="Caixa"
@@ -73,6 +89,7 @@ export default function CaixaPage() {
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
           <button
             onClick={() => setForm((prev) => ({ ...prev, type: 'entrada' }))}
+            disabled={!isMaster}
             className={`w-full rounded-xl border px-4 py-2 text-sm font-semibold sm:w-auto ${
               form.type === 'entrada'
                 ? 'border-emerald-500 bg-emerald-500 text-white'
@@ -83,6 +100,7 @@ export default function CaixaPage() {
           </button>
           <button
             onClick={() => setForm((prev) => ({ ...prev, type: 'saida' }))}
+            disabled={!isMaster}
             className={`w-full rounded-xl border px-4 py-2 text-sm font-semibold sm:w-auto ${
               form.type === 'saida'
                 ? 'border-rose-500 bg-rose-500 text-white'
@@ -93,7 +111,8 @@ export default function CaixaPage() {
           </button>
           <button
             onClick={handleAdd}
-            className="w-full rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 sm:w-auto"
+            className="w-full rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60 sm:w-auto"
+            disabled={!isMaster}
           >
             Registrar movimento
           </button>
@@ -130,6 +149,7 @@ export default function CaixaPage() {
               placeholder="Descrição"
               value={form.label}
               onChange={(event) => setForm((prev) => ({ ...prev, label: event.target.value }))}
+              disabled={!isMaster}
             />
             <input
               type="number"
@@ -137,12 +157,14 @@ export default function CaixaPage() {
               placeholder="Valor"
               value={form.amount}
               onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))}
+              disabled={!isMaster}
             />
             <div className="flex gap-2">
               <select
                 className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
                 value={form.type}
                 onChange={(event) => setForm((prev) => ({ ...prev, type: event.target.value }))}
+                disabled={!isMaster}
               >
                 <option value="entrada">Entrada</option>
                 <option value="saida">Saída</option>
@@ -151,6 +173,7 @@ export default function CaixaPage() {
                 className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
                 value={form.method}
                 onChange={(event) => setForm((prev) => ({ ...prev, method: event.target.value }))}
+                disabled={!isMaster}
               >
                 <option>Pix</option>
                 <option>Dinheiro</option>

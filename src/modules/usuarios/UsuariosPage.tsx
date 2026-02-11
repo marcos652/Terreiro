@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
+import { useAuth } from '@contexts/AuthContext';
 import { getUsers, updateUser, User } from '@services/userService';
 
 export default function UsuariosPage() {
@@ -8,6 +9,8 @@ export default function UsuariosPage() {
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('Todos');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const { profile } = useAuth();
+  const isMaster = profile?.role === 'MASTER';
 
   useEffect(() => {
     let active = true;
@@ -49,6 +52,17 @@ export default function UsuariosPage() {
     try {
       await updateUser(user.id, { role: nextRole });
       setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, role: nextRole } : item)));
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleApprove = async (user: User) => {
+    if (!user.id) return;
+    setUpdatingId(user.id);
+    try {
+      await updateUser(user.id, { status: 'APROVADO' });
+      setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, status: 'APROVADO' } : item)));
     } finally {
       setUpdatingId(null);
     }
@@ -108,7 +122,7 @@ export default function UsuariosPage() {
                   <select
                     className="rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-700 hover:border-ink-300"
                     value={user.role}
-                    disabled={updatingId === user.id}
+                    disabled={!isMaster || updatingId === user.id}
                     onChange={(event) => handleRoleChange(user, event.target.value as User['role'])}
                   >
                     <option value="MEMBER">VisualizaÃ§Ã£o</option>
@@ -117,6 +131,15 @@ export default function UsuariosPage() {
                   <span className="rounded-full bg-ink-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
                     {roleLabel(user.role)}
                   </span>
+                  {user.status !== 'APROVADO' && (
+                    <button
+                      onClick={() => handleApprove(user)}
+                      disabled={!isMaster || updatingId === user.id}
+                      className="rounded-lg border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 hover:border-emerald-300 disabled:opacity-60"
+                    >
+                      Aprovar
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

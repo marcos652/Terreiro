@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
+import { useAuth } from '@contexts/AuthContext';
 import { addCantiga, CantigaItem, deleteCantiga, getCantigas } from '@services/cantigasService';
 
 export default function CantigasPage() {
@@ -7,6 +8,8 @@ export default function CantigasPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ category: '', title: '', lyrics: '' });
+  const { profile } = useAuth();
+  const isMaster = profile?.role === 'MASTER';
 
   useEffect(() => {
     let active = true;
@@ -86,6 +89,7 @@ export default function CantigasPage() {
               placeholder="Categoria (ex.: Cantiga de Exu)"
               value={form.category}
               onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}
+              disabled={!isMaster}
             />
             <datalist id="cantiga-categories">
               {categories.map((category) => (
@@ -97,16 +101,18 @@ export default function CantigasPage() {
               placeholder="Titulo (opcional)"
               value={form.title}
               onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
+              disabled={!isMaster}
             />
             <textarea
               className="min-h-[180px] rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
               placeholder="Digite a letra da cantiga..."
               value={form.lyrics}
               onChange={(event) => setForm((prev) => ({ ...prev, lyrics: event.target.value }))}
+              disabled={!isMaster}
             />
             <button
               onClick={handleAdd}
-              disabled={saving || !form.category.trim() || !form.lyrics.trim()}
+              disabled={!isMaster || saving || !form.category.trim() || !form.lyrics.trim()}
               className="w-full rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-500 disabled:opacity-60"
             >
               {saving ? 'Salvando...' : 'Salvar cantiga'}
@@ -146,7 +152,8 @@ export default function CantigasPage() {
                           </div>
                           <button
                             onClick={() => handleRemove(item)}
-                            className="text-xs font-semibold text-rose-500 hover:text-rose-600"
+                            disabled={!isMaster}
+                            className="text-xs font-semibold text-rose-500 hover:text-rose-600 disabled:opacity-60"
                           >
                             Remover
                           </button>
