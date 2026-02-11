@@ -55,6 +55,16 @@ const navItems = [
     ),
   },
   {
+    label: 'Cantigas',
+    href: '/cantigas',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M9 18a3 3 0 1 1-6 0V6l10-2v10" />
+        <circle cx="16" cy="17" r="3" />
+      </svg>
+    ),
+  },
+  {
     label: 'Estoque',
     href: '/estoque',
     icon: (

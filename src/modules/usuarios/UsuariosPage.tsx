@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
-import { getUsers, User } from '@services/userService';
+import { getUsers, updateUser, User } from '@services/userService';
 
 export default function UsuariosPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('Todos');
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -25,8 +26,8 @@ export default function UsuariosPage() {
 
   const filtered = useMemo(() => {
     return users.filter((user) => {
-      const matchesSearch = `${user.name} ${user.role}`.toLowerCase().includes(search.toLowerCase());
-      const matchesRole = role === 'Todos' || user.role === role;
+      const matchesSearch = `${user.name} ${user.email} ${user.role}`.toLowerCase().includes(search.toLowerCase());
+      const matchesRole = role === 'Todos' || role === roleLabel(user.role);
       return matchesSearch && matchesRole;
     });
   }, [users, search, role]);
@@ -35,6 +36,23 @@ export default function UsuariosPage() {
     const unique = new Set(users.map((user) => user.role).filter(Boolean));
     return Array.from(unique);
   }, [users]);
+
+  const roleLabel = (value?: User['role']) => {
+    if (value === 'MASTER') return 'Master';
+    if (value === 'MEMBER') return 'VisualizaÃ§Ã£o';
+    return value || 'â€”';
+  };
+
+  const handleRoleChange = async (user: User, nextRole: User['role']) => {
+    if (!user.id) return;
+    setUpdatingId(user.id);
+    try {
+      await updateUser(user.id, { role: nextRole });
+      setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, role: nextRole } : item)));
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const formatYear = (value?: string) => {
     if (!value) return '—';
@@ -64,9 +82,8 @@ export default function UsuariosPage() {
               onChange={(event) => setRole(event.target.value)}
             >
               <option>Todos</option>
-              {roles.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
+              <option>Master</option>
+              <option>Visualização</option>
             </select>
             <div className="rounded-xl border border-ink-100 bg-ink-50 p-3 text-xs text-ink-500">
               Mantenha o cadastro atualizado para garantir mensagens e avisos.
@@ -82,17 +99,24 @@ export default function UsuariosPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm font-semibold text-ink-900">{user.name}</div>
-                    <div className="text-xs text-ink-400">{user.role}</div>
+                    <div className="text-xs text-ink-400">{user.email}</div>
                   </div>
                 </div>
                 <div className="mt-3 text-xs text-ink-400">No terreiro desde {formatYear(user.created_at)}</div>
-                <div className="mt-3 flex gap-2">
-                  <button className="rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-600 hover:border-ink-300">
-                    Editar
-                  </button>
-                  <button className="rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-600 hover:border-ink-300">
-                    Mensagem
-                  </button>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <div className="text-xs font-semibold text-ink-400">NÃ­vel</div>
+                  <select
+                    className="rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-700 hover:border-ink-300"
+                    value={user.role}
+                    disabled={updatingId === user.id}
+                    onChange={(event) => handleRoleChange(user, event.target.value as User['role'])}
+                  >
+                    <option value="MEMBER">VisualizaÃ§Ã£o</option>
+                    <option value="MASTER">Master</option>
+                  </select>
+                  <span className="rounded-full bg-ink-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
+                    {roleLabel(user.role)}
+                  </span>
                 </div>
               </div>
             ))}

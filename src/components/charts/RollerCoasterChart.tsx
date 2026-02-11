@@ -13,7 +13,9 @@ import {
   type TooltipItem,
 } from 'chart.js';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler, Legend);
+if (ChartJS && typeof ChartJS.register === 'function') {
+  ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler, Legend);
+}
 
 type RollerCoasterChartProps = {
   data: number[];

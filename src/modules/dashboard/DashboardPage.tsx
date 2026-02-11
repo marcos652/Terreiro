@@ -6,7 +6,7 @@ import AppShell from '@components/AppShell';
 import RollerCoasterChart from '@components/charts/RollerCoasterChart';
 import { seedFirestoreBaseData } from '@services/seedService';
 import { db } from '@services/firebase';
-import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { addDoc, collection, getDocs, limit, onSnapshot, orderBy, query, writeBatch } from 'firebase/firestore';
 import { COLLECTIONS } from '@services/firestoreCollections';
 
 type ActivityItem = {
@@ -25,6 +25,9 @@ const DashboardPage = () => {
   const { data, loading: loadingData, error } = useTestFirestore();
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [focusNote, setFocusNote] = useState('');
+  const [focusSavedNote, setFocusSavedNote] = useState('');
+  const [focusSavedAt, setFocusSavedAt] = useState('');
+  const [focusSaving, setFocusSaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [cashTotal, setCashTotal] = useState(0);
   const [membersPaid, setMembersPaid] = useState({ paid: 0, total: 0 });
@@ -35,6 +38,7 @@ const DashboardPage = () => {
   const [cashSeries, setCashSeries] = useState<number[]>([]);
   const [cashLabels, setCashLabels] = useState<string[]>([]);
   const [nextEvent, setNextEvent] = useState<{ date: string; time: string; title: string } | null>(null);
+  const [clearingCash, setClearingCash] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -127,11 +131,29 @@ const DashboardPage = () => {
       setNextEvent({ date: data.date, time: data.time, title: data.title });
     });
 
+    const focusQuery = query(
+      collection(db, COLLECTIONS.FOCUS_NOTES),
+      orderBy('created_at', 'desc'),
+      limit(1)
+    );
+    const focusUnsub = onSnapshot(focusQuery, (snapshot) => {
+      const docSnap = snapshot.docs[0];
+      if (!docSnap) {
+        setFocusSavedNote('');
+        setFocusSavedAt('');
+        return;
+      }
+      const data = docSnap.data() as { message?: string; created_at?: string };
+      setFocusSavedNote(data.message || '');
+      setFocusSavedAt(data.created_at || '');
+    });
+
     return () => {
       cashUnsub();
       membershipUnsub();
       stockUnsub();
       eventsUnsub();
+      focusUnsub();
     };
   }, [user]);
 
@@ -148,6 +170,52 @@ const DashboardPage = () => {
       alert('Campos base criados no Firestore!');
     } finally {
       setSeeding(false);
+    }
+  };
+
+  const handleClearCash = async () => {
+    if (!db) {
+      alert('Configuracao do Firebase nao encontrada.');
+      return;
+    }
+    const confirmed = window.confirm('Deseja apagar todos os movimentos do caixa?');
+    if (!confirmed) return;
+    setClearingCash(true);
+    try {
+      const snapshot = await getDocs(collection(db, COLLECTIONS.CASH_TRANSACTIONS));
+      const batch = writeBatch(db);
+      snapshot.docs.forEach((docSnap) => {
+        batch.delete(docSnap.ref);
+      });
+      await batch.commit();
+      setActivity([]);
+      setCashTotal(0);
+      setCashLabels([]);
+      setCashSeries([]);
+      setHasCashData(false);
+    } finally {
+      setClearingCash(false);
+    }
+  };
+
+  const handleFocusSave = async () => {
+    if (!db) {
+      alert('Configuracao do Firebase nao encontrada.');
+      return;
+    }
+    const message = focusNote.trim();
+    if (!message) {
+      return;
+    }
+    setFocusSaving(true);
+    try {
+      await addDoc(collection(db, COLLECTIONS.FOCUS_NOTES), {
+        message,
+        created_at: new Date().toISOString(),
+      });
+      setFocusNote('');
+    } finally {
+      setFocusSaving(false);
     }
   };
 
@@ -205,7 +273,7 @@ const DashboardPage = () => {
           </div>
         </div>
         <div className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
-          <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Proximo culto</div>
+          <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Proxima gira</div>
           <div className="mt-2 text-lg font-semibold text-ink-900">
             {nextEvent ? `${nextEvent.date} • ${nextEvent.time}` : 'Sem eventos'}
           </div>
@@ -260,7 +328,16 @@ const DashboardPage = () => {
                 <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Atividade recente</div>
                 <div className="text-lg font-semibold text-ink-900">Ultimos lancamentos</div>
               </div>
-              <button className="text-xs font-semibold text-ink-400 hover:text-ink-600">Ver tudo</button>
+              <div className="flex items-center gap-3">
+                <button className="text-xs font-semibold text-ink-400 hover:text-ink-600">Ver tudo</button>
+                <button
+                  onClick={handleClearCash}
+                  disabled={clearingCash}
+                  className="text-xs font-semibold text-rose-500 hover:text-rose-600 disabled:opacity-60"
+                >
+                  {clearingCash ? 'Limpando...' : 'Limpar'}
+                </button>
+              </div>
             </div>
             <div className="flex flex-col gap-3">
               {activity.length === 0 && (
@@ -289,19 +366,7 @@ const DashboardPage = () => {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
-            <div className="mb-3 text-xs uppercase tracking-[0.2em] text-ink-300">Firestore</div>
-            <h2 className="mb-3 text-lg font-semibold text-ink-900">
-              Usuarios cadastrados (colecao "users")
-            </h2>
-            {loadingData && <span className="text-sm text-ink-400">Carregando...</span>}
-            {error && <span className="text-sm text-red-600">Erro: {error}</span>}
-            {!loadingData && !error && (
-              <pre className="max-h-64 overflow-auto rounded-xl bg-ink-50 p-3 text-xs text-ink-600">
-                {JSON.stringify(data, null, 2)}
-              </pre>
-            )}
-          </div>
+          
         </div>
 
         <div className="flex flex-col gap-6">
@@ -310,13 +375,37 @@ const DashboardPage = () => {
             <p className="text-sm text-ink-600">
               Centralize o que precisa ser resolvido antes do proximo culto.
             </p>
-            <textarea
-              value={focusNote}
-              onChange={(event) => setFocusNote(event.target.value)}
-              className="mt-4 min-h-[120px] w-full rounded-xl border border-ink-100 bg-white p-3 text-sm text-ink-700 shadow-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
-              placeholder="Ex.: confirmar equipe de acolhimento, separar ervas, revisar som."
-            />
-            <div className="mt-3 text-xs text-ink-400">Salvo localmente nesta sessao.</div>
+            <div className="mt-4 rounded-2xl border border-ink-200 bg-ink-50/70 p-3 shadow-sm">
+              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-500">
+                Mensagem da semana
+              </div>
+              <textarea
+                value={focusNote}
+                onChange={(event) => setFocusNote(event.target.value)}
+                className="min-h-[140px] w-full rounded-xl border border-ink-200 bg-white p-3 text-sm text-ink-800 shadow-sm focus:border-ink-500 focus:outline-none focus:ring-2 focus:ring-ink-200"
+                placeholder="Ex.: confirmar equipe de acolhimento, separar ervas, revisar som."
+              />
+            </div>
+            <button
+              onClick={handleFocusSave}
+              disabled={focusSaving || focusNote.trim().length === 0}
+              className="mt-3 w-full rounded-xl bg-ink-900 px-4 py-3 text-xs font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
+            >
+              {focusSaving ? 'Enviando...' : 'Enviar'}
+            </button>
+            <div className="mt-4 rounded-xl border border-ink-200 bg-white px-3 py-3 text-sm text-ink-700 shadow-sm">
+              {focusSavedNote ? (
+                <div className="flex flex-col gap-1">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-400">
+                    Mensagem salva
+                  </div>
+                  <div className="text-sm text-ink-800">{focusSavedNote}</div>
+                  {focusSavedAt && <div className="text-xs text-ink-400">{focusSavedAt}</div>}
+                </div>
+              ) : (
+                <div className="text-xs text-ink-400">Nenhuma mensagem salva ainda.</div>
+              )}
+            </div>
           </div>
 
           <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">

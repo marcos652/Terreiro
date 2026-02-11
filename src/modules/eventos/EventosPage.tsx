@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
-import { addEvent, EventItem, getEvents } from '@services/eventService';
+import { addEvent, deleteEvent, EventItem, getEvents } from '@services/eventService';
 
 export default function EventosPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -45,6 +45,14 @@ export default function EventosPage() {
     const id = await addEvent(payload);
     setEvents((prev) => [{ id, ...payload }, ...prev]);
     setForm({ title: '', date: '', time: '', leader: '' });
+  };
+
+  const handleDeleteEvent = async (event: EventItem) => {
+    if (!event.id) return;
+    const confirmed = window.confirm(`Remover o evento "${event.title}"?`);
+    if (!confirmed) return;
+    await deleteEvent(event.id);
+    setEvents((prev) => prev.filter((item) => item.id !== event.id));
   };
 
   return (
@@ -146,6 +154,12 @@ export default function EventosPage() {
                   >
                     {event.status === 'confirmado' ? 'Confirmado' : 'Pendente'}
                   </span>
+                  <button
+                    onClick={() => handleDeleteEvent(event)}
+                    className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300"
+                  >
+                    Remover
+                  </button>
                 </div>
               </div>
             ))}

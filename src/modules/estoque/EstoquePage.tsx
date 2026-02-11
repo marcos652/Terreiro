@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
-import { addStockItem, getStockItems, StockItem } from '@services/stockService';
+import {
+  addStockItem,
+  clearStockItems,
+  deleteStockItem,
+  getStockItems,
+  StockItem,
+  updateStockItem,
+} from '@services/stockService';
 
 const initialItems: StockItem[] = [];
 
@@ -17,6 +24,10 @@ export default function EstoquePage() {
     price: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [quantityDrafts, setQuantityDrafts] = useState<Record<string, string>>({});
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [clearingAll, setClearingAll] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -24,6 +35,13 @@ export default function EstoquePage() {
       .then((data) => {
         if (!active) return;
         setItems(data);
+        const drafts = data.reduce<Record<string, string>>((acc, item) => {
+          if (item.id) {
+            acc[item.id] = String(item.quantity ?? 0);
+          }
+          return acc;
+        }, {});
+        setQuantityDrafts(drafts);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -60,17 +78,67 @@ export default function EstoquePage() {
     setNewItem({ name: '', category: '', quantity: 0, unit: 'un', supplier: '', color: '', price: 0 });
   };
 
+  const handleUpdateQuantity = async (item: StockItem, nextQuantity: number) => {
+    if (!item.id) return;
+    const safeQuantity = Math.max(0, Number(nextQuantity) || 0);
+    setUpdatingId(item.id);
+    try {
+      await updateStockItem(item.id, { quantity: safeQuantity });
+      setItems((prev) =>
+        prev.map((entry) => (entry.id === item.id ? { ...entry, quantity: safeQuantity } : entry))
+      );
+      setQuantityDrafts((prev) => ({ ...prev, [item.id as string]: String(safeQuantity) }));
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleDeleteItem = async (item: StockItem) => {
+    if (!item.id) return;
+    const confirmed = window.confirm(`Remover o item "${item.name}"?`);
+    if (!confirmed) return;
+    setDeletingId(item.id);
+    try {
+      await deleteStockItem(item.id);
+      setItems((prev) => prev.filter((entry) => entry.id !== item.id));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleClearAll = async () => {
+    const confirmed = window.confirm('Deseja apagar todo o estoque?');
+    if (!confirmed) return;
+    setClearingAll(true);
+    try {
+      await clearStockItems();
+      setItems([]);
+      setQuantityDrafts({});
+    } finally {
+      setClearingAll(false);
+    }
+  };
+
   return (
     <AppShell
       title="Gestão de Estoque"
       subtitle="Controle de itens, alertas de reposição e fornecedores."
       actions={
-        <button
-          onClick={handleAddItem}
-          className="w-full rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-400 sm:w-auto"
-        >
-          Adicionar item
-        </button>
+        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <button
+            onClick={handleClearAll}
+            disabled={clearingAll}
+            className="w-full rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-600 shadow-sm hover:border-rose-300 disabled:opacity-60 sm:w-auto"
+          >
+            {clearingAll ? 'Limpando...' : 'Limpar estoque'}
+          </button>
+          <button
+            onClick={handleAddItem}
+            className="w-full rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-400 sm:w-auto"
+          >
+            Adicionar item
+          </button>
+        </div>
       }
     >
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_2fr]">
@@ -152,6 +220,7 @@ export default function EstoquePage() {
                   <th className="py-2">Categoria</th>
                   <th className="py-2">Qtd.</th>
                   <th className="py-2">Fornecedor</th>
+                  <th className="py-2">AÃ§Ãµes</th>
                   <th className="py-2 text-right">Status</th>
                 </tr>
               </thead>
@@ -166,6 +235,51 @@ export default function EstoquePage() {
                         {item.quantity} {item.unit}
                       </td>
                       <td className="py-3 text-ink-500">{item.supplier}</td>
+                      <td className="py-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            onClick={() => handleUpdateQuantity(item, item.quantity - 1)}
+                            disabled={updatingId === item.id}
+                            className="h-7 w-7 rounded-lg border border-ink-200 text-sm font-semibold text-ink-600 hover:border-ink-300 disabled:opacity-60"
+                          >
+                            -
+                          </button>
+                          <button
+                            onClick={() => handleUpdateQuantity(item, item.quantity + 1)}
+                            disabled={updatingId === item.id}
+                            className="h-7 w-7 rounded-lg border border-ink-200 text-sm font-semibold text-ink-600 hover:border-ink-300 disabled:opacity-60"
+                          >
+                            +
+                          </button>
+                          <input
+                            type="number"
+                            className="w-20 rounded-lg border border-ink-200 px-2 py-1 text-sm text-ink-700 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
+                            value={quantityDrafts[item.id || ''] ?? String(item.quantity ?? 0)}
+                            onChange={(event) =>
+                              setQuantityDrafts((prev) => ({
+                                ...prev,
+                                [item.id as string]: event.target.value,
+                              }))
+                            }
+                          />
+                          <button
+                            onClick={() =>
+                              handleUpdateQuantity(item, Number(quantityDrafts[item.id || ''] ?? item.quantity))
+                            }
+                            disabled={updatingId === item.id}
+                            className="rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-600 hover:border-ink-300 disabled:opacity-60"
+                          >
+                            Atualizar
+                          </button>
+                          <button
+                            onClick={() => handleDeleteItem(item)}
+                            disabled={deletingId === item.id}
+                            className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300 disabled:opacity-60"
+                          >
+                            {deletingId === item.id ? 'Removendo...' : 'Remover'}
+                          </button>
+                        </div>
+                      </td>
                       <td className="py-3 text-right">
                         <span
                           className={`rounded-full px-3 py-1 text-xs font-semibold ${
