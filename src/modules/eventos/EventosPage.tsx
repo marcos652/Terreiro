@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
 import { useAuth } from '@contexts/AuthContext';
-import { addEvent, deleteEvent, EventItem, getEvents } from '@services/eventService';
+import { addEvent, deleteEvent, updateEvent, EventItem, getEvents } from '@services/eventService';
 import { useNotifications } from '@contexts/NotificationContext';
 
 export default function EventosPage() {
