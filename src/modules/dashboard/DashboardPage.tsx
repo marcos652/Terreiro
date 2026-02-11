@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '@contexts/AuthContext';
 import { useTestFirestore } from './useTestFirestore';
 import AppShell from '@components/AppShell';
-import RollerCoasterChart from '@components/charts/RollerCoasterChart';
+import LineChart from '@components/charts/LineChart';
 import { seedFirestoreBaseData } from '@services/seedService';
 import { db } from '@services/firebase';
 import { addDoc, collection, getDocs, limit, onSnapshot, orderBy, query, writeBatch } from 'firebase/firestore';
@@ -40,6 +40,8 @@ const DashboardPage = () => {
   const [nextEvent, setNextEvent] = useState<{ date: string; time: string; title: string } | null>(null);
   const [clearingCash, setClearingCash] = useState(false);
   const isMaster = profile?.role === 'MASTER';
+
+  const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'year'>('month');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -159,6 +161,27 @@ const DashboardPage = () => {
   }, [user]);
 
   const rollerData = useMemo(() => cashSeries, [cashSeries]);
+
+  const filteredCashData = useMemo(() => {
+    const now = new Date();
+    const filtered = cashSeries.filter((_, index) => {
+      const date = new Date(cashLabels[index].split('/').reverse().join('-'));
+      switch (period) {
+        case 'day':
+          return date.toDateString() === now.toDateString();
+        case 'week':
+          const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+          return date >= weekStart;
+        case 'month':
+          return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+        case 'year':
+          return date.getFullYear() === now.getFullYear();
+        default:
+          return true;
+      }
+    });
+    return filtered;
+  }, [cashSeries, cashLabels, period]);
 
   const handleSeed = async () => {
     if (!db) {
@@ -301,7 +324,7 @@ const DashboardPage = () => {
               <div>
                 <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Tendencia</div>
                 <div className="flex items-center gap-2">
-                  <div className="text-lg font-semibold text-ink-900">Mensalidades (montanha russa)</div>
+                  <div className="text-lg font-semibold text-ink-900">Balanço do Caixa</div>
                   <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-purple-700">
                     Roxo
                   </span>
@@ -312,9 +335,9 @@ const DashboardPage = () => {
                 Atualizado hoje
               </span>
             </div>
-            <RollerCoasterChart
-              data={rollerData}
-              height={110}
+            <LineChart
+              data={filteredCashData}
+              height={240}
               strokeColor="#7c3aed"
               fillColor="rgba(124,58,237,0.32)"
               dotColor="#6d28d9"

@@ -17,7 +17,7 @@ if (ChartJS && typeof ChartJS.register === 'function') {
   ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler, Legend);
 }
 
-type RollerCoasterChartProps = {
+type LineChartProps = {
   data: number[];
   height?: number;
   strokeColor?: string;
@@ -31,29 +31,29 @@ const Line = dynamic(() => import('react-chartjs-2').then((mod) => mod.Line), {
   ssr: false,
 });
 
-export default function RollerCoasterChart({
+export default function LineChart({
   data,
-  height = 160,
+  height = 240,
   strokeColor = '#0e7490',
   fillColor = 'rgba(14,116,144,0.35)',
   dotColor = '#0f766e',
   labels,
   valueFormatter,
-}: RollerCoasterChartProps) {
+}: LineChartProps) {
   const chartData = useMemo(
     () => ({
       labels: labels && labels.length === data.length ? labels : data.map((_, index) => `P${index + 1}`),
       datasets: [
         {
-          label: 'Tendência',
+          label: '',
           data,
           borderColor: strokeColor,
           backgroundColor: fillColor,
           pointBackgroundColor: dotColor,
           pointBorderColor: dotColor,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          tension: 0.35,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          tension: 0.4,
           fill: true,
         },
       ],

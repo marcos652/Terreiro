@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
 import { useAuth } from '@contexts/AuthContext';
-import RollerCoasterChart from '@components/charts/RollerCoasterChart';
+import LineChart from '@components/charts/LineChart';
 import {
   addMembership,
   clearMemberships,
@@ -451,7 +451,7 @@ export default function MensalidadesPage() {
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Evolucao</div>
           <div className="text-lg font-semibold text-ink-900">Recebimentos por mes</div>
           <div className="mt-4">
-            <RollerCoasterChart
+            <LineChart
               data={monthlySeries.data}
               height={110}
               labels={monthlySeries.labels}
