@@ -6,7 +6,19 @@ import AppShell from '@components/AppShell';
 import LineChart from '@components/charts/LineChart';
 import { seedFirestoreBaseData } from '@services/seedService';
 import { db } from '@services/firebase';
-import { addDoc, collection, getDocs, limit, onSnapshot, orderBy, query, writeBatch } from 'firebase/firestore';
+import {
+  addDoc,
+  collection,
+  getDocs,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  writeBatch,
+  updateDoc,
+  deleteDoc,
+  doc,
+} from 'firebase/firestore';
 import { COLLECTIONS } from '@services/firestoreCollections';
 
 type ActivityItem = {
@@ -15,6 +27,26 @@ type ActivityItem = {
   amount: string;
   tone: 'pos' | 'neg' | 'info';
   time: string;
+};
+
+type FocusItem = { id: string; message: string; created_at: string };
+
+type AgendaItem = {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  status: 'confirmado' | 'pendente';
+  leader?: string;
+};
+
+type ActionItem = {
+  id: string;
+  title: string;
+  status: 'pendente' | 'em_andamento' | 'concluido';
+  owner: string;
+  created_by: string;
+  created_at: string;
 };
 
 const DashboardPage = () => {
@@ -39,6 +71,11 @@ const DashboardPage = () => {
   const [cashLabels, setCashLabels] = useState<string[]>([]);
   const [nextEvent, setNextEvent] = useState<{ date: string; time: string; title: string } | null>(null);
   const [clearingCash, setClearingCash] = useState(false);
+  const [focusHistory, setFocusHistory] = useState<FocusItem[]>([]);
+  const [agendaList, setAgendaList] = useState<AgendaItem[]>([]);
+  const [actionItems, setActionItems] = useState<ActionItem[]>([]);
+  const [actionText, setActionText] = useState('');
+  const [actionSaving, setActionSaving] = useState(false);
   const isMaster = profile?.role === 'MASTER';
 
   const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'year'>('month');
@@ -134,21 +171,67 @@ const DashboardPage = () => {
       setNextEvent({ date: data.date, time: data.time, title: data.title });
     });
 
+    const agendaQuery = query(collection(db, COLLECTIONS.EVENTS), orderBy('date', 'asc'), limit(4));
+    const agendaUnsub = onSnapshot(agendaQuery, (snapshot) => {
+      const list: AgendaItem[] = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data() as AgendaItem;
+        return {
+          id: docSnap.id,
+          title: data.title,
+          date: data.date,
+          time: data.time,
+          status: data.status || 'pendente',
+          leader: data.leader,
+        };
+      });
+      setAgendaList(list);
+    });
+
     const focusQuery = query(
       collection(db, COLLECTIONS.FOCUS_NOTES),
       orderBy('created_at', 'desc'),
-      limit(1)
+      limit(5)
     );
     const focusUnsub = onSnapshot(focusQuery, (snapshot) => {
       const docSnap = snapshot.docs[0];
       if (!docSnap) {
         setFocusSavedNote('');
         setFocusSavedAt('');
+        setFocusHistory([]);
         return;
       }
       const data = docSnap.data() as { message?: string; created_at?: string };
       setFocusSavedNote(data.message || '');
       setFocusSavedAt(data.created_at || '');
+      const history = snapshot.docs.map((item) => {
+        const focusData = item.data() as { message?: string; created_at?: string };
+        return {
+          id: item.id,
+          message: focusData.message || '',
+          created_at: focusData.created_at || '',
+        };
+      });
+      setFocusHistory(history);
+    });
+
+    const actionsQuery = query(
+      collection(db, COLLECTIONS.ACTION_ITEMS),
+      orderBy('created_at', 'desc'),
+      limit(10)
+    );
+    const actionsUnsub = onSnapshot(actionsQuery, (snapshot) => {
+      const list: ActionItem[] = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data() as ActionItem;
+        return {
+          id: docSnap.id,
+          title: data.title,
+          status: data.status || 'pendente',
+          owner: data.owner || 'Membro',
+          created_by: data.created_by,
+          created_at: data.created_at,
+        };
+      });
+      setActionItems(list);
     });
 
     return () => {
@@ -157,6 +240,8 @@ const DashboardPage = () => {
       stockUnsub();
       eventsUnsub();
       focusUnsub();
+      agendaUnsub();
+      actionsUnsub();
     };
   }, [user]);
 
@@ -243,6 +328,61 @@ const DashboardPage = () => {
     }
   };
 
+  const handleAddAction = async () => {
+    if (!db || !user) {
+      alert('Voce precisa estar logado para adicionar tarefas.');
+      return;
+    }
+    const title = actionText.trim();
+    if (!title) return;
+    setActionSaving(true);
+    try {
+      await addDoc(collection(db, COLLECTIONS.ACTION_ITEMS), {
+        title,
+        status: 'pendente',
+        owner: profile?.name || user.email || 'Membro',
+        created_by: user.uid,
+        created_at: new Date().toISOString(),
+      });
+      setActionText('');
+    } finally {
+      setActionSaving(false);
+    }
+  };
+
+  const handleUpdateActionStatus = async (item: ActionItem, status: ActionItem['status']) => {
+    if (!db || !user) return;
+    const canEdit = isMaster || item.created_by === user.uid;
+    if (!canEdit) return;
+    await updateDoc(doc(db, COLLECTIONS.ACTION_ITEMS, item.id), { status });
+  };
+
+  const handleDeleteAction = async (item: ActionItem) => {
+    if (!db || !isMaster) return;
+    const confirmed = window.confirm(`Remover a tarefa "${item.title}"?`);
+    if (!confirmed) return;
+    await deleteDoc(doc(db, COLLECTIONS.ACTION_ITEMS, item.id));
+  };
+
+  const membershipProgress =
+    membersPaid.total > 0 ? Math.min(100, (membersPaid.paid / membersPaid.total) * 100) : 0;
+  const cashStatus =
+    hasCashData && cashTotal < 0
+      ? { label: 'Caixa negativo', className: 'bg-rose-100 text-rose-700' }
+      : hasCashData
+      ? { label: 'Saudavel', className: 'bg-emerald-100 text-emerald-700' }
+      : { label: 'Sem dados', className: 'bg-ink-100 text-ink-600' };
+  const membershipStatus =
+    membershipProgress >= 80
+      ? { label: 'Meta ok', className: 'bg-emerald-100 text-emerald-700' }
+      : membershipProgress >= 40
+      ? { label: 'Acompanhar', className: 'bg-amber-100 text-amber-700' }
+      : { label: 'Critico', className: 'bg-rose-100 text-rose-700' };
+  const stockStatus =
+    criticalStock === 0
+      ? { label: 'Estoque em dia', className: 'bg-emerald-100 text-emerald-700' }
+      : { label: 'Repor itens', className: 'bg-amber-100 text-amber-700' };
+
   if (loading || (!user && typeof window !== 'undefined')) {
     return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
   }
@@ -270,8 +410,8 @@ const DashboardPage = () => {
             {hasCashData ? `R$ ${formatBRL(cashTotal)}` : '—'}
           </div>
           <div className="mt-3 flex items-center gap-2 text-xs text-ink-500">
-            <span className="rounded-full bg-ink-100 px-2 py-1 text-ink-600">Sem dados</span>
-            <span>Atualize para exibir valores</span>
+            <span className={`rounded-full px-2 py-1 ${cashStatus.className}`}>{cashStatus.label}</span>
+            <span>{hasCashData ? 'Movimentacao acumulada' : 'Atualize para exibir valores'}</span>
           </div>
         </div>
         <div className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
@@ -283,10 +423,7 @@ const DashboardPage = () => {
             <div
               className="h-2 rounded-full bg-purple-500"
               style={{
-                width:
-                  membersPaid.total > 0
-                    ? `${Math.min(100, (membersPaid.paid / membersPaid.total) * 100)}%`
-                    : '0%',
+                width: `${membershipProgress}%`,
               }}
             />
           </div>
@@ -294,6 +431,10 @@ const DashboardPage = () => {
             {hasMembershipData
               ? `R$ ${formatBRL(membersPaid.paid)} de R$ ${formatBRL(membersPaid.total)}`
               : 'Sem dados'}
+          </div>
+          <div className="mt-2 flex items-center gap-2 text-xs text-ink-500">
+            <span className={`rounded-full px-2 py-1 ${membershipStatus.className}`}>{membershipStatus.label}</span>
+            <span>{membershipProgress}% do objetivo</span>
           </div>
         </div>
         <div className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
@@ -314,6 +455,9 @@ const DashboardPage = () => {
             {hasStockData ? `${criticalStock} itens` : '—'}
           </div>
           <div className="mt-2 text-sm text-ink-500">Sem informacoes</div>
+          <div className="mt-2 text-xs text-ink-500">
+            <span className={`rounded-full px-2 py-1 ${stockStatus.className}`}>{stockStatus.label}</span>
+          </div>
         </div>
       </div>
 
@@ -395,25 +539,24 @@ const DashboardPage = () => {
 
         <div className="flex flex-col gap-6">
           <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
-            <div className="mb-2 text-xs uppercase tracking-[0.2em] text-ink-300">Foco da semana</div>
+            <div className="mb-2 text-xs uppercase tracking-[0.2em] text-ink-300">Sugestoes proximo toque</div>
             <p className="text-sm text-ink-600">
-              Centralize o que precisa ser resolvido antes do proximo culto.
+              Envie ideias ou necessidades; o historico fica salvo e so o admin pode limpar.
             </p>
             <div className="mt-4 rounded-2xl border border-ink-200 bg-ink-50/70 p-3 shadow-sm">
               <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-500">
-                Mensagem da semana
+                Sugestao
               </div>
               <textarea
                 value={focusNote}
                 onChange={(event) => setFocusNote(event.target.value)}
-                readOnly={!isMaster}
                 className="min-h-[140px] w-full rounded-xl border border-ink-200 bg-white p-3 text-sm text-ink-800 shadow-sm focus:border-ink-500 focus:outline-none focus:ring-2 focus:ring-ink-200"
                 placeholder="Ex.: confirmar equipe de acolhimento, separar ervas, revisar som."
               />
             </div>
             <button
               onClick={handleFocusSave}
-              disabled={!isMaster || focusSaving || focusNote.trim().length === 0}
+              disabled={focusSaving || focusNote.trim().length === 0}
               className="mt-3 w-full rounded-xl bg-ink-900 px-4 py-3 text-xs font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
             >
               {focusSaving ? 'Enviando...' : 'Enviar'}
@@ -431,23 +574,146 @@ const DashboardPage = () => {
                 <div className="text-xs text-ink-400">Nenhuma mensagem salva ainda.</div>
               )}
             </div>
+            <div className="mt-3 rounded-xl border border-ink-100 bg-ink-50/70 p-3">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.25em] text-ink-400">
+                Ultimas enviadas
+              </div>
+              {focusHistory.length === 0 && (
+                <div className="mt-2 text-xs text-ink-400">Sem historico recente.</div>
+              )}
+              <div className="mt-2 flex flex-col gap-2">
+                {focusHistory.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-ink-100 bg-white px-3 py-2 text-xs text-ink-600 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-ink-800">
+                        {index === 0 ? 'Mais recente' : `#${index + 1}`}
+                      </span>
+                      <span className="text-[10px] text-ink-400">{item.created_at}</span>
+                    </div>
+                    <div className="mt-1">{item.message}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
-            <div className="mb-3 text-xs uppercase tracking-[0.2em] text-ink-300">Proximas acoes</div>
-            <div className="flex flex-col gap-3 text-sm text-ink-600">
-              <div className="flex items-center justify-between rounded-xl border border-ink-100 px-3 py-2">
-                <span>Confirmar escala de atendimento</span>
-                <span className="rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-700">Pendente</span>
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Checklist do toque</div>
+                <div className="text-lg font-semibold text-ink-900">Tarefas em tempo real</div>
               </div>
-              <div className="flex items-center justify-between rounded-xl border border-ink-100 px-3 py-2">
-                <span>Atualizar lista de materiais do ritual</span>
-                <span className="rounded-full bg-teal-100 px-2 py-1 text-xs text-teal-700">Em andamento</span>
+              <span className="rounded-full bg-ink-900 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white">
+                Colaborativo
+              </span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <input
+                  className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
+                  placeholder="Adicionar tarefa"
+                  value={actionText}
+                  onChange={(e) => setActionText(e.target.value)}
+                />
+                <button
+                  onClick={handleAddAction}
+                  disabled={actionSaving || actionText.trim().length === 0}
+                  className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:opacity-60"
+                >
+                  {actionSaving ? 'Salvando...' : 'Incluir'}
+                </button>
               </div>
-              <div className="flex items-center justify-between rounded-xl border border-ink-100 px-3 py-2">
-                <span>Enviar lembrete para membros</span>
-                <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-700">Concluido</span>
+              <div className="flex flex-col gap-2">
+                {actionItems.map((item) => {
+                  const statusPill =
+                    item.status === 'concluido'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : item.status === 'em_andamento'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-ink-100 text-ink-700';
+                  const canEdit = isMaster || item.created_by === user?.uid;
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between rounded-xl border border-ink-100 bg-ink-50/60 px-3 py-2"
+                    >
+                      <div>
+                        <div className="text-sm font-semibold text-ink-900">{item.title}</div>
+                        <div className="text-[11px] text-ink-400">Resp.: {item.owner}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={item.status}
+                          onChange={(e) => handleUpdateActionStatus(item, e.target.value as ActionItem['status'])}
+                          disabled={!canEdit}
+                          className="rounded-lg border border-ink-200 bg-white px-2 py-1 text-xs text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
+                        >
+                          <option value="pendente">Pendente</option>
+                          <option value="em_andamento">Em andamento</option>
+                          <option value="concluido">Concluido</option>
+                        </select>
+                        <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${statusPill}`}>
+                          {item.status === 'em_andamento' ? 'Em andamento' : item.status === 'concluido' ? 'Concluido' : 'Pendente'}
+                        </span>
+                        {isMaster && (
+                          <button
+                            onClick={() => handleDeleteAction(item)}
+                            className="rounded-lg border border-rose-200 px-2 py-1 text-[11px] font-semibold text-rose-600 hover:border-rose-300"
+                          >
+                            Remover
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                {actionItems.length === 0 && (
+                  <div className="rounded-xl border border-ink-100 bg-white px-3 py-4 text-xs text-ink-400">
+                    Nenhuma tarefa cadastrada ainda.
+                  </div>
+                )}
               </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Agenda viva</div>
+                <div className="text-lg font-semibold text-ink-900">Proximos toques</div>
+              </div>
+              <a className="text-xs font-semibold text-teal-600 hover:text-teal-700" href="/eventos">
+                Ver eventos
+              </a>
+            </div>
+            <div className="flex flex-col gap-2">
+              {agendaList.map((event) => (
+                <div key={event.id} className="flex items-center justify-between rounded-xl border border-ink-100 bg-ink-50/60 px-3 py-2">
+                  <div>
+                    <div className="text-sm font-semibold text-ink-900">{event.title}</div>
+                    <div className="text-[11px] text-ink-400">
+                      {event.date} • {event.time} {event.leader ? `• ${event.leader}` : ''}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
+                        event.status === 'confirmado' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                      }`}
+                    >
+                      {event.status === 'confirmado' ? 'Confirmado' : 'Pendente'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {agendaList.length === 0 && (
+                <div className="rounded-xl border border-ink-100 bg-white px-3 py-4 text-xs text-ink-400">
+                  Nenhum evento proximo cadastrado.
+                </div>
+              )}
             </div>
           </div>
         </div>

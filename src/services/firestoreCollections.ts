@@ -7,4 +7,5 @@ export const COLLECTIONS = {
   MEMBERSHIPS: 'memberships',
   FOCUS_NOTES: 'focus_notes',
   CANTIGAS: 'cantigas',
+  ACTION_ITEMS: 'action_items',
 };

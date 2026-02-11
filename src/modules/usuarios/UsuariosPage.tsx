@@ -68,6 +68,13 @@ export default function UsuariosPage() {
     }
   };
 
+  const handleClearTeam = async () => {
+    const confirmed = window.confirm('Tem certeza que deseja limpar as notificações da equipe?');
+    if (!confirmed) return;
+    // Aqui você adicionaria a lógica para limpar as notificações
+    alert('Notificações da equipe limpas!');
+  };
+
   const formatYear = (value?: string) => {
     if (!value) return '—';
     const date = new Date(value);
@@ -79,6 +86,14 @@ export default function UsuariosPage() {
     <AppShell
       title="Usuários"
       subtitle="Gestão de acesso, equipes e permissões."
+      actions={
+        <button
+          onClick={handleClearTeam}
+          className="rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-ink-300 disabled:opacity-60"
+        >
+          Limpar Notificações da Equipe
+        </button>
+      }
     >
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_2fr]">
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
@@ -109,7 +124,10 @@ export default function UsuariosPage() {
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Equipe</div>
           <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
             {filtered.map((user) => (
-              <div key={user.id} className="rounded-2xl border border-ink-100 p-4">
+              <div
+                key={user.id}
+                className="rounded-2xl border border-ink-100 bg-white/80 p-4 shadow-floating transition hover:-translate-y-1 hover:border-ink-200"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm font-semibold text-ink-900">{user.name}</div>

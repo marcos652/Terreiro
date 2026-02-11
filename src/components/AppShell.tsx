@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '@contexts/AuthContext';
 import { auth } from '@services/firebase';
+import { useNotifications } from '@contexts/NotificationContext';
 
 type AppShellProps = {
   title: string;
@@ -92,6 +93,8 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   const { user } = useAuth();
   const canSignOut = Boolean(auth);
   const [darkMode, setDarkMode] = useState(false);
+  const { unreadCount, notifications, markAsRead } = useNotifications();
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -113,12 +116,18 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
     window.localStorage.setItem('theme-mode', 'light');
   };
 
+  const handleNotificationClick = () => {
+    markAsRead();
+    setShowNotifications(false);
+  };
+
   return (
     <div className="min-h-screen bg-sand-50 text-ink-900">
       <div className="relative">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.20),_rgba(255,255,255,0))]" />
         <div className="flex min-h-screen">
-          <aside className="hidden w-72 flex-shrink-0 border-r border-gray-800 bg-black backdrop-blur md:flex md:flex-col lg:w-80">
+          <aside className="relative hidden w-72 flex-shrink-0 border-r border-gray-800 bg-black backdrop-blur md:flex md:flex-col lg:w-80">
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-px bg-gradient-to-b from-ink-100 via-ink-200 to-transparent opacity-80" />
             <div className="px-7 py-7">
               <div className="font-display text-2xl font-semibold text-white">Ile Luz e Fe</div>
             </div>

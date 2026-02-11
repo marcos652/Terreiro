@@ -60,23 +60,23 @@ html.theme-dark select {
 }
 
 html.theme-dark [class*='bg-white'] {
-  background-color: #0f1b33 !important;
+  background-color: #1f2937 !important; /* cinza escuro para cards */
 }
 
 html.theme-dark [class*='bg-ink-50'] {
-  background-color: #12203a !important;
+  background-color: #111827 !important; /* cinza profundo para seções */
 }
 
 html.theme-dark [class~='bg-black'] {
-  background-color: #0b1a34 !important;
+  background-color: #1f2937 !important; /* cinza para menu lateral */
 }
 
 html.theme-dark [class*='hover:bg-gray-800']:hover {
-  background-color: #16305c !important;
+  background-color: #1f2937 !important;
 }
 
 html.theme-dark [class*='border-gray-800'] {
-  border-color: #1f3d70 !important;
+  border-color: #374151 !important;
 }
 
 html.theme-dark [class*='border-'] {
@@ -97,4 +97,12 @@ html.theme-dark [class*='shadow-floating'] {
   box-shadow:
     0 20px 40px -28px rgba(71, 85, 105, 0.55),
     0 10px 20px -18px rgba(100, 116, 139, 0.45);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.shadow-floating:hover {
+  transform: translateY(-10px);
+  box-shadow:
+    0 30px 60px -26px rgba(71, 85, 105, 0.72),
+    0 16px 30px -18px rgba(100, 116, 139, 0.58);
 }

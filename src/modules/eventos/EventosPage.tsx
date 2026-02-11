@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
 import { useAuth } from '@contexts/AuthContext';
 import { addEvent, deleteEvent, EventItem, getEvents } from '@services/eventService';
+import { useNotifications } from '@contexts/NotificationContext';
 
 export default function EventosPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -10,6 +11,7 @@ export default function EventosPage() {
   const [form, setForm] = useState({ title: '', date: '', time: '', leader: '' });
   const { profile } = useAuth();
   const isMaster = profile?.role === 'MASTER';
+  const { addNotification } = useNotifications();
 
   useEffect(() => {
     let active = true;
@@ -48,6 +50,10 @@ export default function EventosPage() {
     const id = await addEvent(payload);
     setEvents((prev) => [{ id, ...payload }, ...prev]);
     setForm({ title: '', date: '', time: '', leader: '' });
+    addNotification({
+      message: `Novo evento criado: ${payload.title}`,
+      path: '/eventos',
+    });
   };
 
   const handleDeleteEvent = async (event: EventItem) => {
