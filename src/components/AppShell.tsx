@@ -96,6 +96,8 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   const [darkMode, setDarkMode] = useState(false);
   const { unreadCount, notifications, markAsRead } = useNotifications();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -120,6 +122,40 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   const handleNotificationClick = () => {
     markAsRead();
     setShowNotifications(false);
+  };
+
+  const searchItems = [
+    ...navItems.map((item) => ({ label: item.label, href: item.href, type: 'Menu' as const })),
+    // Principais cards do dashboard atual
+    { label: 'Caixa atual', href: '/#card-caixa', type: 'Card' as const },
+    { label: 'Mensalidades', href: '/#card-mensalidades', type: 'Card' as const },
+    { label: 'Proxima gira', href: '/#card-proxima-gira', type: 'Card' as const },
+    { label: 'Estoque critico', href: '/#card-estoque-critico', type: 'Card' as const },
+    { label: 'Tendencia - Balanco do Caixa', href: '/#card-tendencia', type: 'Card' as const },
+    { label: 'Atividade recente - Ultimos lancamentos', href: '/#card-atividade', type: 'Card' as const },
+    { label: 'Sugestoes proximo toque', href: '/#card-sugestoes', type: 'Card' as const },
+    { label: 'Checklist do toque - Tarefas em tempo real', href: '/#card-checklist', type: 'Card' as const },
+    { label: 'Agenda viva - Proximos toques', href: '/#card-agenda', type: 'Card' as const },
+  ];
+
+  const filteredSearch = searchItems.filter((item) =>
+    item.label.toLowerCase().includes(searchQuery.trim().toLowerCase())
+  );
+
+  const handleSearchSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const target = filteredSearch[0];
+    if (target) {
+      setSearchOpen(false);
+      setSearchQuery('');
+      router.push(target.href);
+    }
+  };
+
+  const handleSearchSelect = (href: string) => {
+    setSearchOpen(false);
+    setSearchQuery('');
+    router.push(href);
   };
 
   const todayLabel = new Intl.DateTimeFormat('pt-BR', {
@@ -164,7 +200,10 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                 })}
               </div>
             </nav>
-            <div className="border-t border-ink-100 px-7 py-5 text-xs text-ink-400">Painel interno</div>
+            <div className="border-t border-ink-100 px-7 py-5 text-xs text-ink-400">
+              <div>Painel interno</div>
+              <div className="mt-2 text-sm font-semibold text-ink-200">Desenvolvido Por Marcos Vinicius</div>
+            </div>
           </aside>
           <div className="flex-1">
             <header className="flex flex-col gap-4 border-b border-ink-100 bg-white/75 px-4 py-4 backdrop-blur md:flex-row md:items-center md:justify-between md:px-6 2xl:px-12">
@@ -191,13 +230,39 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
               </div>
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 <div className="relative w-full md:w-auto">
-                  <input
-                    className="w-full rounded-2xl border border-ink-100 bg-white px-4 py-2 text-sm text-ink-700 shadow-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100 md:w-64"
-                    placeholder="Buscar rapidamente..."
-                  />
+                  <form onSubmit={handleSearchSubmit}>
+                    <input
+                      className="w-full rounded-2xl border border-ink-100 bg-white px-4 py-2 text-sm text-ink-700 shadow-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100 md:w-64"
+                      placeholder="Buscar menus e cards..."
+                      value={searchQuery}
+                      onFocus={() => setSearchOpen(true)}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setSearchOpen(true);
+                      }}
+                    />
+                  </form>
                   <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-ink-100 px-2 py-0.5 text-[10px] font-semibold text-ink-500">
                     Ctrl K
                   </span>
+                  {searchOpen && searchQuery.trim().length > 0 && (
+                    <div className="absolute z-20 mt-1 w-full rounded-2xl border border-ink-100 bg-white p-2 shadow-lg">
+                      {filteredSearch.length === 0 && (
+                        <div className="px-3 py-2 text-xs text-ink-400">Nada encontrado.</div>
+                      )}
+                      {filteredSearch.slice(0, 8).map((item) => (
+                        <button
+                          key={`${item.type}-${item.href}-${item.label}`}
+                          onClick={() => handleSearchSelect(item.href)}
+                          className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm text-ink-700 hover:bg-ink-50"
+                          type="button"
+                        >
+                          <span>{item.label}</span>
+                          <span className="text-[10px] uppercase tracking-[0.2em] text-ink-400">{item.type}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 text-ink-400">
                   <button className="hidden h-10 w-10 items-center justify-center rounded-2xl border border-ink-100 bg-white hover:border-ink-200 md:flex">

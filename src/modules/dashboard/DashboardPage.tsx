@@ -417,7 +417,7 @@ const DashboardPage = () => {
       }
     >
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
+        <div id="card-caixa" className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Caixa atual</div>
           <div className="mt-2 text-2xl font-semibold text-ink-900">
             {hasCashData ? `R$ ${formatBRL(cashTotal)}` : '—'}
@@ -427,7 +427,7 @@ const DashboardPage = () => {
             <span>{hasCashData ? 'Movimentacao acumulada' : 'Atualize para exibir valores'}</span>
           </div>
         </div>
-        <div className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
+        <div id="card-mensalidades" className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Mensalidades</div>
           <div className="mt-2 text-2xl font-semibold text-ink-900">
             {hasMembershipData ? `R$ ${formatBRL(membersPaid.paid)}` : '—'}
@@ -450,7 +450,7 @@ const DashboardPage = () => {
             <span>{membershipProgress}% do objetivo</span>
           </div>
         </div>
-        <div className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
+        <div id="card-proxima-gira" className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Proxima gira</div>
           <div className="mt-2 text-lg font-semibold text-ink-900">
             {nextEvent ? `${nextEvent.date} • ${nextEvent.time}` : 'Sem eventos'}
@@ -462,7 +462,7 @@ const DashboardPage = () => {
             Atualizar detalhes
           </button>
         </div>
-        <div className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
+        <div id="card-estoque-critico" className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Estoque critico</div>
           <div className="mt-2 text-2xl font-semibold text-ink-900">
             {hasStockData ? `${criticalStock} itens` : '—'}
@@ -476,7 +476,7 @@ const DashboardPage = () => {
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[2fr_1fr]">
         <div className="flex flex-col gap-6">
-          <div className="rounded-2xl border border-ink-100 bg-white p-4 shadow-floating">
+          <div id="card-tendencia" className="rounded-2xl border border-ink-100 bg-white p-4 shadow-floating">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Tendencia</div>
@@ -503,7 +503,7 @@ const DashboardPage = () => {
             />
           </div>
 
-          <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
+          <div id="card-atividade" className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Atividade recente</div>
@@ -551,7 +551,7 @@ const DashboardPage = () => {
         </div>
 
         <div className="flex flex-col gap-6">
-          <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
+          <div id="card-sugestoes" className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
             <div className="mb-2 text-xs uppercase tracking-[0.2em] text-ink-300">Sugestoes proximo toque</div>
             <p className="text-sm text-ink-600">
               Envie ideias ou necessidades; o historico fica salvo e so o admin pode limpar.
@@ -613,7 +613,7 @@ const DashboardPage = () => {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
+          <div id="card-checklist" className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Checklist do toque</div>
@@ -692,7 +692,7 @@ const DashboardPage = () => {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
+          <div id="card-agenda" className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Agenda viva</div>
