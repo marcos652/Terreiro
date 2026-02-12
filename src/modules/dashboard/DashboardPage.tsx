@@ -345,6 +345,9 @@ const DashboardPage = () => {
         created_at: new Date().toISOString(),
       });
       setActionText('');
+    } catch (error) {
+      console.error(error);
+      alert('Nao foi possivel salvar a tarefa. Verifique permissoes e tente novamente.');
     } finally {
       setActionSaving(false);
     }
@@ -354,14 +357,24 @@ const DashboardPage = () => {
     if (!db || !user) return;
     const canEdit = isMaster || item.created_by === user.uid;
     if (!canEdit) return;
-    await updateDoc(doc(db, COLLECTIONS.ACTION_ITEMS, item.id), { status });
+    try {
+      await updateDoc(doc(db, COLLECTIONS.ACTION_ITEMS, item.id), { status });
+    } catch (error) {
+      console.error(error);
+      alert('Nao foi possivel atualizar a tarefa. Permissao negada?');
+    }
   };
 
   const handleDeleteAction = async (item: ActionItem) => {
     if (!db || !isMaster) return;
     const confirmed = window.confirm(`Remover a tarefa "${item.title}"?`);
     if (!confirmed) return;
-    await deleteDoc(doc(db, COLLECTIONS.ACTION_ITEMS, item.id));
+    try {
+      await deleteDoc(doc(db, COLLECTIONS.ACTION_ITEMS, item.id));
+    } catch (error) {
+      console.error(error);
+      alert('Nao foi possivel remover a tarefa. Permissao negada?');
+    }
   };
 
   const membershipProgress =
