@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '@contexts/AuthContext';
@@ -128,8 +129,14 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
         <div className="flex min-h-screen">
           <aside className="relative hidden w-72 flex-shrink-0 border-r border-gray-800 bg-black backdrop-blur md:flex md:flex-col lg:w-80">
             <div className="pointer-events-none absolute right-0 top-0 h-full w-px bg-gradient-to-b from-ink-100 via-ink-200 to-transparent opacity-80" />
-            <div className="px-7 py-7">
-              <div className="font-display text-2xl font-semibold text-white">Ile Luz e Fe</div>
+            <div className="flex items-center gap-3 px-7 py-7">
+              <div className="relative h-12 w-12 overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/20">
+                <Image src="/logo-templo.svg" alt="Templo de Umbanda Luz e Fé" fill sizes="48px" className="object-contain" priority />
+              </div>
+              <div>
+                <div className="font-display text-xl font-semibold text-white">Luz e Fé</div>
+                <div className="text-[11px] uppercase tracking-[0.24em] text-ink-300">Templo</div>
+              </div>
             </div>
             <nav className="flex-1 px-5 pb-6">
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 mb-4">Navegação</div>

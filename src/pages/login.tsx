@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, firebaseConfigMissing } from '@services/firebase';
@@ -98,7 +99,17 @@ export default function LoginPage() {
           <div className="grid w-full gap-12 lg:grid-cols-[1.05fr_0.95fr]">
             <div className="flex flex-col justify-center gap-6">
               <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.4em] text-ink-400">
-                Terreiro
+                <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-ink-100/60">
+                  <Image
+                    src="/logo-templo.svg"
+                    alt="Templo de Umbanda Luz e Fé"
+                    fill
+                    sizes="56px"
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+                <span>Templo Luz e Fé</span>
               </div>
               <h1 className="font-display text-5xl font-semibold leading-tight text-ink-900 md:text-6xl">
                 Seja bem-vindo, que os orixás te abençoem
