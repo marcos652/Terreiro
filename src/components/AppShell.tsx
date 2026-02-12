@@ -122,6 +122,12 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
     setShowNotifications(false);
   };
 
+  const todayLabel = new Intl.DateTimeFormat('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'short',
+  }).format(new Date());
+
   return (
     <div className="min-h-screen bg-sand-50 text-ink-900">
       <div className="relative">
@@ -178,6 +184,9 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                   </div>
                   <div className="mt-1 h-1 w-16 rounded-full bg-gradient-to-r from-amber-400 via-amber-200 to-transparent" />
                   {subtitle && <p className="mt-2 text-sm text-ink-500">{subtitle}</p>}
+                  <div className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-ink-400">
+                    {todayLabel} • Marília / SP • Templo de Umbanda Luz e Fé
+                  </div>
                 </div>
               </div>
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
