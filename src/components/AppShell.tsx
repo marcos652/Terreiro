@@ -98,6 +98,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -208,11 +209,17 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
           <div className="flex-1">
             <header className="flex flex-col gap-4 border-b border-ink-100 bg-white/75 px-4 py-4 backdrop-blur md:flex-row md:items-center md:justify-between md:px-6 2xl:px-12">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-ink-900 text-white md:hidden">
+                <button
+                  type="button"
+                  onClick={() => setMobileOpen(true)}
+                  className="flex h-10 w-10 items-center justify-center rounded-2xl bg-ink-900 text-white md:hidden"
+                  aria-label="Abrir menu"
+                  aria-expanded={mobileOpen}
+                >
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
-                </div>
+                </button>
                 <div>
                   <div className="text-xs uppercase tracking-[0.2em] text-ink-400 md:hidden">Terreiro Admin</div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -323,25 +330,56 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                 </div>
               </div>
             </header>
-            <div className="border-b border-ink-100 bg-white/70 px-4 py-3 backdrop-blur md:hidden">
-              <nav className="flex items-center gap-2 overflow-x-auto pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">
-                {navItems.map((item) => {
-                  const active = router.pathname === item.href;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-1 transition ${
-                        active ? 'bg-ink-900 text-white' : 'bg-ink-100 text-ink-600'
-                      }`}
+            {mobileOpen && (
+              <>
+                <button
+                  className="fixed inset-0 z-40 bg-black/40 md:hidden"
+                  aria-label="Fechar menu"
+                  onClick={() => setMobileOpen(false)}
+                />
+                <div className="fixed inset-y-0 left-0 z-50 w-72 bg-black text-white shadow-2xl md:hidden">
+                  <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-10 w-10 overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/20">
+                        <Image src="/logo-templo.svg" alt="Templo de Umbanda Luz e Fé" fill sizes="40px" className="object-contain" priority />
+                      </div>
+                      <div>
+                        <div className="font-display text-lg font-semibold text-white">Luz e Fé</div>
+                        <div className="text-[10px] uppercase tracking-[0.24em] text-ink-300">Painel</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Fechar menu"
+                      onClick={() => setMobileOpen(false)}
+                      className="rounded-2xl border border-white/20 p-2 text-white hover:border-white/40"
                     >
-                      {item.icon}
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
+                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M6 6l12 12M18 6l-12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <nav className="flex flex-col gap-1 px-4 py-4 text-sm">
+                    {navItems.map((item) => {
+                      const active = router.pathname === item.href;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMobileOpen(false)}
+                          className={`flex items-center gap-3 rounded-2xl px-4 py-3 transition ${
+                            active ? 'bg-white text-black shadow-sm' : 'text-gray-200 hover:bg-white/10'
+                          }`}
+                        >
+                          <span className="text-ink-300">{item.icon}</span>
+                          <span>{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </nav>
+                </div>
+              </>
+            )}
             <main className="px-4 py-6 md:px-6 md:py-8 2xl:px-12">
               <div className="mx-auto flex w-full max-w-none flex-col gap-6">{children}</div>
             </main>
