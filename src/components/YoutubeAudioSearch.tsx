@@ -120,7 +120,7 @@ export default function YoutubeAudioSearch() {
             height={90}
             width="100%"
             style={{ borderRadius: 12 }}
-            config={{ youtube: { playerVars: { rel: 0, modestbranding: 1 } } }}
+            config={{ playerVars: { rel: 0, modestbranding: 1 } }}
           />
         </div>
         {current && (
