@@ -7,7 +7,11 @@ type Track = { id: string; title: string; thumb: string; channel: string };
 
 type ApiResponse = { items?: Track[]; error?: string };
 
-export default function YoutubeAudioSearch() {
+type YoutubeAudioSearchProps = {
+  variant?: "compact" | "full";
+};
+
+export default function YoutubeAudioSearch({ variant = "compact" }: YoutubeAudioSearchProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Track[]>([]);
   const [current, setCurrent] = useState<Track | null>(null);
@@ -42,13 +46,17 @@ export default function YoutubeAudioSearch() {
     setPlaying(true);
   };
 
+  const isCompact = variant === "compact";
+
   return (
     <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">YouTube</div>
           <div className="text-lg font-semibold text-ink-900">Buscar e tocar cantigas</div>
-          <div className="text-xs text-ink-400">Somente áudio (player discreto)</div>
+          <div className="text-xs text-ink-400">
+            {isCompact ? "Somente áudio (player discreto)" : "Player em vídeo para ver e ouvir"}
+          </div>
         </div>
       </div>
 
@@ -112,14 +120,18 @@ export default function YoutubeAudioSearch() {
             </button>
           )}
         </div>
-        <div className="overflow-hidden rounded-xl bg-black/80">
+        <div
+          className={`relative overflow-hidden rounded-xl bg-black/80 ${
+            isCompact ? "h-[120px]" : "aspect-video w-full"
+          }`}
+        >
           <ReactPlayer
             url={current ? `https://www.youtube.com/watch?v=${current.id}` : undefined}
             playing={playing}
             controls
-            height={90}
+            height="100%"
             width="100%"
-            style={{ borderRadius: 12 }}
+            style={{ position: "absolute", top: 0, left: 0, borderRadius: 12 }}
             config={{ playerVars: { rel: 0, modestbranding: 1 } }}
           />
         </div>

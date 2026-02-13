@@ -8,7 +8,7 @@ export default function YoutubeMacumbaPage() {
       subtitle="Busque e ouça as cantigas direto do YouTube"
     >
       <div className="grid grid-cols-1 gap-6">
-        <YoutubeAudioSearch />
+        <YoutubeAudioSearch variant="full" />
       </div>
     </AppShell>
   );
