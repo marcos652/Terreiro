@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "missing query" });
   }
 
-  const key = process.env.YOUTUBE_API_KEY;
+  const key = process.env.YOUTUBE_API_KEY || process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
   if (!key) {
     return res.status(500).json({ error: "missing api key" });
   }
