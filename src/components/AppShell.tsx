@@ -67,6 +67,16 @@ const navItems = [
     ),
   },
   {
+    label: 'Youtube Macumba',
+    href: '/youtube-macumba',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="M10 9l5 3-5 3V9z" />
+      </svg>
+    ),
+  },
+  {
     label: 'Estoque',
     href: '/estoque',
     icon: (
