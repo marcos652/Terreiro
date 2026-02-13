@@ -95,8 +95,8 @@ export default function LoginPage() {
         <div className="pointer-events-none absolute right-10 top-1/2 h-80 w-80 -translate-y-1/2 rounded-full bg-emerald-300/25 blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-sky-300/25 blur-3xl" />
 
-        <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 md:px-10">
-          <div className="grid w-full gap-12 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 md:px-10 min-w-0">
+          <div className="grid w-full min-w-0 gap-12 lg:grid-cols-[1.05fr_0.95fr]">
             <div className="flex flex-col justify-center gap-6">
               <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.4em] text-ink-400">
                 <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-ink-100/60">

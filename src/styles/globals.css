@@ -18,6 +18,14 @@ body,
   overflow-x: hidden;
 }
 
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
 html:not(.theme-dark) [class*='bg-sand-50'] {
   background-color: #f7fbff !important;
 }

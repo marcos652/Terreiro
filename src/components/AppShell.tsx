@@ -216,7 +216,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
               <div className="mt-2 text-sm font-semibold text-ink-200">Desenvolvido Por Marcos Vinicius</div>
             </div>
           </aside>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <header className="flex flex-col gap-4 border-b border-ink-100 bg-white/75 px-4 py-4 backdrop-blur md:flex-row md:items-center md:justify-between md:px-6 2xl:px-12">
               <div className="flex items-center gap-3">
                 <button
