@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, firebaseConfigMissing } from '@services/firebase';
+import { getUserById, upsertUser } from '@services/userService';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -22,18 +24,39 @@ export default function LoginPage() {
       if (!auth) {
         const missing =
           firebaseConfigMissing.length > 0 ? ` (${firebaseConfigMissing.join(', ')})` : '';
-        setError(`Configuracao do Firebase nao encontrada.${missing}`);
+        setError(`Configuração do Firebase não encontrada.${missing}`);
         setLoading(false);
         return;
       }
       if (mode === 'register') {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const credential = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = credential.user.uid;
+        const name = email.split('@')[0] || 'Usuário';
+        await upsertUser(uid, {
+          name,
+          email,
+          role: 'MEMBER',
+          status: 'PENDENTE',
+          created_at: new Date().toISOString(),
+        });
+        setInfo('Conta criada. Aguarde a validação do administrador para acessar o painel.');
+        await signOut(auth);
+        setLoading(false);
+        return;
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        const credential = await signInWithEmailAndPassword(auth, email, password);
+        const uid = credential.user.uid;
+        const userDoc = await getUserById(uid);
+        if (!userDoc || userDoc.status !== 'APROVADO') {
+          setError('Seu acesso está em validação pelo administrador.');
+          await signOut(auth);
+          setLoading(false);
+          return;
+        }
       }
       router.push('/');
     } catch (err: any) {
-      setError(mode === 'register' ? 'Nao foi possivel criar a conta.' : 'Usuario ou senha invalidos.');
+      setError(mode === 'register' ? 'Não foi possível criar a conta.' : 'Usuário ou senha inválidos.');
     } finally {
       setLoading(false);
     }
@@ -51,14 +74,14 @@ export default function LoginPage() {
       if (!auth) {
         const missing =
           firebaseConfigMissing.length > 0 ? ` (${firebaseConfigMissing.join(', ')})` : '';
-        setError(`Configuracao do Firebase nao encontrada.${missing}`);
+        setError(`Configuração do Firebase não encontrada.${missing}`);
         setLoading(false);
         return;
       }
       await sendPasswordResetEmail(auth, email);
-      setInfo('Enviamos um e-mail com o link de recuperacao.');
+      setInfo('Enviamos um e-mail com o link de recuperação.');
     } catch (err: any) {
-      setError('Nao foi possivel enviar o e-mail de recuperacao.');
+      setError('Não foi possível enviar o e-mail de recuperação.');
     } finally {
       setLoading(false);
     }
@@ -76,19 +99,29 @@ export default function LoginPage() {
           <div className="grid w-full gap-12 lg:grid-cols-[1.05fr_0.95fr]">
             <div className="flex flex-col justify-center gap-6">
               <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.4em] text-ink-400">
-                Terreiro
+                <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-ink-100/60">
+                  <Image
+                    src="/logo-templo.svg"
+                    alt="Templo de Umbanda Luz e Fé"
+                    fill
+                    sizes="56px"
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+                <span>Templo Luz e Fé</span>
               </div>
               <h1 className="font-display text-5xl font-semibold leading-tight text-ink-900 md:text-6xl">
-                seja bem-vindo, que os orixas te abençoes
+                Seja bem-vindo, que os orixás te abençoem
               </h1>
               <p className="max-w-md text-lg text-ink-500">
-                Acesse o painel com seguranca para acompanhar rituais, estoque e financeiro em um
-                unico lugar.
+                Acesse o painel com segurança para acompanhar rituais, estoque e financeiro em um
+                único lugar.
               </p>
               <div className="flex flex-wrap items-center gap-3 text-xs text-ink-400">
                 <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Seguro</span>
                 <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Organizado</span>
-                <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Confiavel</span>
+                <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Confiável</span>
               </div>
             </div>
 
@@ -177,7 +210,7 @@ export default function LoginPage() {
                   Esqueci minha senha
                 </button>
                 <div className="mt-2 text-center text-xs text-ink-400">
-                  Precisa de acesso? Fale com a administracao.
+                  Precisa de acesso? Fale com a administração.
                 </div>
               </div>
             </form>

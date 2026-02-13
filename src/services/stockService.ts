@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, addDoc, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { COLLECTIONS } from './firestoreCollections';
 
 export interface StockItem {
@@ -36,4 +36,20 @@ export async function getStockItemById(id: string) {
 export async function updateStockItem(id: string, data: Partial<StockItem>) {
   const docRef = doc(db, COLLECTIONS.STOCK_ITEMS, id);
   await setDoc(docRef, data, { merge: true });
+}
+
+export async function deleteStockItem(id: string) {
+  const docRef = doc(db, COLLECTIONS.STOCK_ITEMS, id);
+  await deleteDoc(docRef);
+}
+
+export async function clearStockItems() {
+  const snapshot = await getDocs(collection(db, COLLECTIONS.STOCK_ITEMS));
+  if (snapshot.empty) return 0;
+  const batch = writeBatch(db);
+  snapshot.docs.forEach((docSnap) => {
+    batch.delete(docSnap.ref);
+  });
+  await batch.commit();
+  return snapshot.size;
 }

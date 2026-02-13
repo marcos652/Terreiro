@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, addDoc, getDocs, doc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, setDoc, writeBatch } from 'firebase/firestore';
 import { COLLECTIONS } from './firestoreCollections';
 
 export interface CashTransaction {
@@ -25,4 +25,15 @@ export async function getCashTransactions() {
 export async function updateCashTransaction(id: string, data: Partial<CashTransaction>) {
   const docRef = doc(db, COLLECTIONS.CASH_TRANSACTIONS, id);
   await setDoc(docRef, data, { merge: true });
+}
+
+export async function clearCashTransactions() {
+  const snapshot = await getDocs(collection(db, COLLECTIONS.CASH_TRANSACTIONS));
+  if (snapshot.empty) return 0;
+  const batch = writeBatch(db);
+  snapshot.docs.forEach((docSnap) => {
+    batch.delete(docSnap.ref);
+  });
+  await batch.commit();
+  return snapshot.size;
 }

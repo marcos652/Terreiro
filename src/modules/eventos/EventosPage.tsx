@@ -1,12 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
-import { addEvent, EventItem, getEvents } from '@services/eventService';
+import { useAuth } from '@contexts/AuthContext';
+import { addEvent, deleteEvent, updateEvent, EventItem, getEvents } from '@services/eventService';
+import { useNotifications } from '@contexts/NotificationContext';
 
 export default function EventosPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'todos' | 'confirmado' | 'pendente'>('todos');
+  const [filter, setFilter] = useState<'todos' | 'confirmado' | 'pendente' | 'cancelado'>('todos');
   const [form, setForm] = useState({ title: '', date: '', time: '', leader: '' });
+  const { profile } = useAuth();
+  const isMaster = profile?.role === 'MASTER';
+  const { addNotification } = useNotifications();
 
   useEffect(() => {
     let active = true;
@@ -45,6 +50,24 @@ export default function EventosPage() {
     const id = await addEvent(payload);
     setEvents((prev) => [{ id, ...payload }, ...prev]);
     setForm({ title: '', date: '', time: '', leader: '' });
+    addNotification({
+      message: `Novo evento criado: ${payload.title}`,
+      path: '/eventos',
+    });
+  };
+
+  const handleDeleteEvent = async (event: EventItem) => {
+    if (!event.id) return;
+    const confirmed = window.confirm(`Remover o evento "${event.title}"?`);
+    if (!confirmed) return;
+    await deleteEvent(event.id);
+    setEvents((prev) => prev.filter((item) => item.id !== event.id));
+  };
+
+  const handleStatusChange = async (event: EventItem, status: EventItem['status']) => {
+    if (!event.id) return;
+    await updateEvent(event.id, { status });
+    setEvents((prev) => prev.map((item) => (item.id === event.id ? { ...item, status } : item)));
   };
 
   return (
@@ -54,7 +77,8 @@ export default function EventosPage() {
       actions={
         <button
           onClick={handleAddEvent}
-          className="w-full rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-500 sm:w-auto"
+          disabled={!isMaster}
+          className="w-full rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-500 disabled:opacity-60 sm:w-auto"
         >
           Criar evento
         </button>
@@ -69,6 +93,7 @@ export default function EventosPage() {
               placeholder="Título"
               value={form.title}
               onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
+              disabled={!isMaster}
             />
             <div className="flex gap-2">
               <input
@@ -76,12 +101,14 @@ export default function EventosPage() {
                 placeholder="Data (dd/mm/aaaa)"
                 value={form.date}
                 onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
+                disabled={!isMaster}
               />
               <input
                 className="w-32 rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
                 placeholder="Hora"
                 value={form.time}
                 onChange={(event) => setForm((prev) => ({ ...prev, time: event.target.value }))}
+                disabled={!isMaster}
               />
             </div>
             <input
@@ -89,6 +116,7 @@ export default function EventosPage() {
               placeholder="Responsável"
               value={form.leader}
               onChange={(event) => setForm((prev) => ({ ...prev, leader: event.target.value }))}
+              disabled={!isMaster}
             />
             <div className="rounded-xl border border-ink-100 bg-ink-50 p-3 text-xs text-ink-500">
               Novos eventos entram como pendentes até confirmação.
@@ -125,6 +153,14 @@ export default function EventosPage() {
               >
                 Pendentes
               </button>
+              <button
+                onClick={() => setFilter('cancelado')}
+                className={`rounded-full px-3 py-1 ${
+                  filter === 'cancelado' ? 'bg-rose-500 text-white' : 'bg-ink-100'
+                }`}
+              >
+                Cancelados
+              </button>
             </div>
           </div>
           <div className="mt-4 flex flex-col gap-3">
@@ -137,15 +173,40 @@ export default function EventosPage() {
                       {event.date} • {event.time} • {event.leader}
                     </div>
                   </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      event.status === 'confirmado'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-amber-100 text-amber-700'
-                    }`}
-                  >
-                    {event.status === 'confirmado' ? 'Confirmado' : 'Pendente'}
-                  </span>
+                  <div className="flex flex-col items-end gap-2 md:flex-row md:items-center">
+                    <select
+                      value={event.status}
+                      onChange={(e) => handleStatusChange(event, e.target.value as EventItem['status'])}
+                      disabled={!isMaster}
+                      className="rounded-lg border border-ink-200 bg-white px-3 py-1 text-xs font-semibold text-ink-700 hover:border-ink-300"
+                    >
+                      <option value="pendente">Pendente</option>
+                      <option value="confirmado">Confirmado</option>
+                      <option value="cancelado">Cancelado</option>
+                    </select>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        event.status === 'confirmado'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : event.status === 'cancelado'
+                          ? 'bg-rose-100 text-rose-700'
+                          : 'bg-amber-100 text-amber-700'
+                      }`}
+                    >
+                      {event.status === 'confirmado'
+                        ? 'Confirmado'
+                        : event.status === 'cancelado'
+                        ? 'Cancelado'
+                        : 'Pendente'}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteEvent(event)}
+                      disabled={!isMaster}
+                      className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300 disabled:opacity-60"
+                    >
+                      Remover
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

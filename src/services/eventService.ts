@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, addDoc, getDocs, doc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { COLLECTIONS } from './firestoreCollections';
 
 export interface EventItem {
@@ -8,7 +8,7 @@ export interface EventItem {
   date: string;
   time: string;
   leader: string;
-  status: 'confirmado' | 'pendente';
+  status: 'confirmado' | 'pendente' | 'cancelado';
   created_at: string;
 }
 
@@ -25,4 +25,9 @@ export async function getEvents() {
 export async function updateEvent(id: string, data: Partial<EventItem>) {
   const docRef = doc(db, COLLECTIONS.EVENTS, id);
   await setDoc(docRef, data, { merge: true });
+}
+
+export async function deleteEvent(id: string) {
+  const docRef = doc(db, COLLECTIONS.EVENTS, id);
+  await deleteDoc(docRef);
 }

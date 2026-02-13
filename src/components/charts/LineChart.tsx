@@ -9,11 +9,15 @@ import {
   Tooltip,
   Filler,
   Legend,
+  type ChartOptions,
+  type TooltipItem,
 } from 'chart.js';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler, Legend);
+if (ChartJS && typeof ChartJS.register === 'function') {
+  ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler, Legend);
+}
 
-type RollerCoasterChartProps = {
+type LineChartProps = {
   data: number[];
   height?: number;
   strokeColor?: string;
@@ -27,29 +31,29 @@ const Line = dynamic(() => import('react-chartjs-2').then((mod) => mod.Line), {
   ssr: false,
 });
 
-export default function RollerCoasterChart({
+export default function LineChart({
   data,
-  height = 160,
+  height = 240,
   strokeColor = '#0e7490',
   fillColor = 'rgba(14,116,144,0.35)',
   dotColor = '#0f766e',
   labels,
   valueFormatter,
-}: RollerCoasterChartProps) {
+}: LineChartProps) {
   const chartData = useMemo(
     () => ({
       labels: labels && labels.length === data.length ? labels : data.map((_, index) => `P${index + 1}`),
       datasets: [
         {
-          label: 'Tendência',
+          label: '',
           data,
           borderColor: strokeColor,
           backgroundColor: fillColor,
           pointBackgroundColor: dotColor,
           pointBorderColor: dotColor,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          tension: 0.35,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          tension: 0.4,
           fill: true,
         },
       ],
@@ -57,7 +61,7 @@ export default function RollerCoasterChart({
     [data, labels, strokeColor, fillColor, dotColor]
   );
 
-  const options = useMemo(
+  const options: ChartOptions<'line'> = useMemo(
     () => ({
       responsive: true,
       maintainAspectRatio: false,
@@ -65,8 +69,9 @@ export default function RollerCoasterChart({
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: (context: { parsed?: { y?: number } }) => {
-              const value = context.parsed?.y ?? 0;
+            label: (context: TooltipItem<'line'>) => {
+              const raw = context.parsed?.y;
+              const value = typeof raw === 'number' ? raw : 0;
               return valueFormatter ? valueFormatter(value) : String(value);
             },
           },
