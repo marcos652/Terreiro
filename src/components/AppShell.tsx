@@ -183,15 +183,15 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
             </div>
             <nav className="flex-1 px-5 pb-6">
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 mb-4">Navegação</div>
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1.5">
                 {navItems.map((item) => {
                   const active = router.pathname === item.href;
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-lg font-medium transition ${
-                        active ? 'bg-white text-black shadow-sm' : 'text-gray-300 hover:bg-gray-800'
+                      className={`flex items-center gap-4 rounded-2xl px-5 py-3.5 text-xl font-semibold transition ${
+                        active ? 'bg-white text-black shadow-sm' : 'text-gray-200 hover:bg-gray-800'
                       }`}
                     >
                       <span className="text-ink-400">{item.icon}</span>
@@ -359,7 +359,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                       </svg>
                     </button>
                   </div>
-                  <nav className="flex flex-col gap-1 px-4 py-4 text-sm">
+                  <nav className="flex flex-col gap-1.5 px-4 py-4 text-base">
                     {navItems.map((item) => {
                       const active = router.pathname === item.href;
                       return (
@@ -367,8 +367,8 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                           key={item.href}
                           href={item.href}
                           onClick={() => setMobileOpen(false)}
-                          className={`flex items-center gap-3 rounded-2xl px-4 py-3 transition ${
-                            active ? 'bg-white text-black shadow-sm' : 'text-gray-200 hover:bg-white/10'
+                          className={`flex items-center gap-4 rounded-2xl px-5 py-3.5 transition ${
+                            active ? 'bg-white text-black shadow-sm' : 'text-gray-100 hover:bg-white/10'
                           }`}
                         >
                           <span className="text-ink-300">{item.icon}</span>
