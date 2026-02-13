@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
 import { useAuth } from '@contexts/AuthContext';
 import { addCantiga, CantigaItem, deleteCantiga, getCantigas } from '@services/cantigasService';
+import YoutubeAudioSearch from '@components/YoutubeAudioSearch';
 
 export default function CantigasPage() {
   const [cantigas, setCantigas] = useState<CantigaItem[]>([]);
@@ -79,6 +80,10 @@ export default function CantigasPage() {
       title="Cantigas"
       subtitle="Organize letras por categoria e mantenha o repertorio do terreiro."
     >
+      <div className="grid grid-cols-1 gap-6">
+        <YoutubeAudioSearch />
+      </div>
+
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_2fr]">
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Nova cantiga</div>
