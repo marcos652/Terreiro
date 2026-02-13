@@ -176,7 +176,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   }).format(new Date());
 
   return (
-    <div className="min-h-screen bg-sand-50 text-ink-900">
+    <div className="min-h-screen bg-sand-50 text-ink-900 overflow-x-hidden">
       <div className="relative">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.20),_rgba(255,255,255,0))]" />
         <div className="flex min-h-screen">

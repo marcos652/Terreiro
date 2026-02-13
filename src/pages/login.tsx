@@ -88,7 +88,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f5f0] text-ink-900">
+    <div className="min-h-screen bg-[#f7f5f0] text-ink-900 overflow-x-hidden">
       <div className="relative min-h-screen overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(148,163,184,0.20),_rgba(247,245,240,0.8))]" />
         <div className="pointer-events-none absolute -left-24 top-10 h-64 w-64 rounded-full bg-amber-300/25 blur-3xl" />
