@@ -10,6 +10,7 @@ import {
   MembershipItem,
   updateMembership,
 } from '@services/membershipService';
+import { logService } from '@services/logService';
 
 export default function MensalidadesPage() {
   const formatBRL = (value: number) =>
@@ -175,7 +176,7 @@ export default function MensalidadesPage() {
     const nextStatus = member.status === 'pago' ? 'pendente' : 'pago';
     const nextPayment =
       nextStatus === 'pago' ? new Date().toLocaleDateString('pt-BR') : member.lastPayment;
-    await updateMembership(member.id, { status: nextStatus, lastPayment: nextPayment });
+    await updateMembership(member.id, { status: nextStatus, lastPayment: nextPayment }, profile?.email);
     setMembers((prev) =>
       prev.map((item) =>
         item.id === member.id ? { ...item, status: nextStatus, lastPayment: nextPayment } : item
@@ -215,22 +216,19 @@ export default function MensalidadesPage() {
   };
 
   const handleAddMember = async () => {
-    const name = newMemberName.trim();
-    if (!name) return;
-    const value = newMemberValue.trim() ? Number(newMemberValue) : defaultMemberValue;
-    if (Number.isNaN(value)) return;
+    if (!newMemberName || !newMemberValue) return;
     setAdding(true);
     try {
-      const monthKey = monthFilter || getMonthKey(new Date());
+      const monthKey = getMonthKey(new Date());
       const payload: Omit<MembershipItem, 'id'> = {
-        name,
-        value,
+        name: newMemberName,
+        value: Number(newMemberValue),
         status: 'pendente',
-        lastPayment: 'â€”',
+        lastPayment: '—',
         created_at: new Date().toISOString(),
         month: monthKey,
       };
-      const id = await addMembership(payload);
+      const id = await addMembership(payload, profile?.email);
       setMembers((prev) => [{ id, ...payload }, ...prev]);
       setNewMemberName('');
       setNewMemberValue('');
@@ -243,7 +241,7 @@ export default function MensalidadesPage() {
     if (!member.id) return;
     const confirmed = window.confirm(`Remover ${member.name}?`);
     if (!confirmed) return;
-    await deleteMembership(member.id);
+    await deleteMembership(member.id, profile?.email);
     setMembers((prev) => prev.filter((item) => item.id !== member.id));
   };
 

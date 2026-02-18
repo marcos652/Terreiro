@@ -29,7 +29,7 @@ const missingFirebaseConfig = requiredConfig
 const hasConfig = missingFirebaseConfig.length === 0;
 
 const app =
-  isBrowser && hasConfig
+  hasConfig
     ? getApps().length > 0
       ? getApp()
       : initializeApp(firebaseConfig)

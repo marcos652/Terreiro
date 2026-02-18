@@ -9,6 +9,7 @@ import {
   StockItem,
   updateStockItem,
 } from '@services/stockService';
+import { logService } from '@services/logService';
 
 const initialItems: StockItem[] = [];
 
@@ -76,7 +77,7 @@ export default function EstoquePage() {
       price: Number(newItem.price) || 0,
       created_at: new Date().toISOString(),
     };
-    const id = await addStockItem(payload);
+    const id = await addStockItem(payload, profile?.email);
     setItems((prev) => [{ id, ...payload }, ...prev]);
     setNewItem({ name: '', category: '', quantity: 0, unit: 'un', supplier: '', color: '', price: 0 });
   };
@@ -86,7 +87,7 @@ export default function EstoquePage() {
     const safeQuantity = Math.max(0, Number(nextQuantity) || 0);
     setUpdatingId(item.id);
     try {
-      await updateStockItem(item.id, { quantity: safeQuantity });
+      await updateStockItem(item.id, { quantity: safeQuantity }, profile?.email);
       setItems((prev) =>
         prev.map((entry) => (entry.id === item.id ? { ...entry, quantity: safeQuantity } : entry))
       );
@@ -102,7 +103,7 @@ export default function EstoquePage() {
     if (!confirmed) return;
     setDeletingId(item.id);
     try {
-      await deleteStockItem(item.id);
+      await deleteStockItem(item.id, profile?.email);
       setItems((prev) => prev.filter((entry) => entry.id !== item.id));
     } finally {
       setDeletingId(null);
@@ -114,7 +115,7 @@ export default function EstoquePage() {
     if (!confirmed) return;
     setClearingAll(true);
     try {
-      await clearStockItems();
+      await clearStockItems(profile?.email);
       setItems([]);
       setQuantityDrafts({});
     } finally {

@@ -63,5 +63,9 @@ service cloud.firestore {
         && (isMaster() || resource.data.created_by == request.auth.uid);
       allow delete: if isMaster();
     }
+
+    match /logs/{logId} {
+      allow read, write: if isMaster();
+    }
   }
 }

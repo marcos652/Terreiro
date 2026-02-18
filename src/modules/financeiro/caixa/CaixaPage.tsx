@@ -7,6 +7,7 @@ import {
   CashTransaction,
 } from '@services/transactionService';
 import { useAuth } from '@contexts/AuthContext';
+import { logService } from '@services/logService';
 
 const initialTransactions: CashTransaction[] = [];
 
@@ -72,7 +73,7 @@ export default function CaixaPage() {
       method: form.method,
       created_at: new Date().toISOString(),
     };
-    const id = await addCashTransaction(payload);
+    const id = await addCashTransaction(payload, profile?.email);
     setTransactions((prev) => [{ id, ...payload }, ...prev]);
     setForm({ label: '', amount: '', type: 'entrada', method: 'Pix' });
   };

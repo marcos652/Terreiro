@@ -8,6 +8,22 @@ body {
   background: #ffffff;
   color: #111827;
   font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui;
+  overflow-x: hidden;
+}
+
+html,
+body,
+#__next {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
 }
 
 html:not(.theme-dark) [class*='bg-sand-50'] {

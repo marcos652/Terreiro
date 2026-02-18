@@ -1,6 +1,7 @@
 import { db } from './firebase';
 import { collection, addDoc, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 import { COLLECTIONS } from './firestoreCollections';
+import { logService } from './logService';
 
 export interface User {
   id?: string;
@@ -12,8 +13,9 @@ export interface User {
   created_at: string;
 }
 
-export async function addUser(user: Omit<User, 'id'>) {
+export async function addUser(user: Omit<User, 'id'>, userEmail?: string) {
   const docRef = await addDoc(collection(db, COLLECTIONS.USERS), user);
+  if (userEmail) await logService.addLog(userEmail, `Criou usuário: ${user.email}`);
   return docRef.id;
 }
 
@@ -31,12 +33,20 @@ export async function getUserById(id: string) {
   return null;
 }
 
-export async function updateUser(id: string, data: Partial<User>) {
+export async function updateUser(id: string, data: Partial<User>, userEmail?: string) {
   const docRef = doc(db, COLLECTIONS.USERS, id);
   await setDoc(docRef, data, { merge: true });
+  if (userEmail) {
+    const changes = Object.entries(data).map(([k, v]) => `${k}: ${v}`).join(', ');
+    await logService.addLog(userEmail, `Alterou usuário ${id}: ${changes}`);
+  }
 }
 
-export async function upsertUser(id: string, data: Partial<User>) {
+export async function upsertUser(id: string, data: Partial<User>, userEmail?: string) {
   const docRef = doc(db, COLLECTIONS.USERS, id);
   await setDoc(docRef, data, { merge: true });
+  if (userEmail) {
+    const changes = Object.entries(data).map(([k, v]) => `${k}: ${v}`).join(', ');
+    await logService.addLog(userEmail, `Upsert usuário ${id}: ${changes}`);
+  }
 }

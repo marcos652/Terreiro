@@ -67,6 +67,16 @@ const navItems = [
     ),
   },
   {
+    label: 'Youtube Macumba',
+    href: '/youtube-macumba',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="M10 9l5 3-5 3V9z" />
+      </svg>
+    ),
+  },
+  {
     label: 'Estoque',
     href: '/estoque',
     icon: (
@@ -84,6 +94,16 @@ const navItems = [
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
         <path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0z" />
         <path d="M4 20a8 8 0 0 1 16 0" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Logs',
+    href: '/logs',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <path d="M7 8h10M7 12h10M7 16h10" />
       </svg>
     ),
   },
@@ -166,7 +186,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   }).format(new Date());
 
   return (
-    <div className="min-h-screen bg-sand-50 text-ink-900">
+    <div className="min-h-screen bg-sand-50 text-ink-900 overflow-x-hidden">
       <div className="relative">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.20),_rgba(255,255,255,0))]" />
         <div className="flex min-h-screen">
@@ -206,7 +226,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
               <div className="mt-2 text-sm font-semibold text-ink-200">Desenvolvido Por Marcos Vinicius</div>
             </div>
           </aside>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <header className="flex flex-col gap-4 border-b border-ink-100 bg-white/75 px-4 py-4 backdrop-blur md:flex-row md:items-center md:justify-between md:px-6 2xl:px-12">
               <div className="flex items-center gap-3">
                 <button

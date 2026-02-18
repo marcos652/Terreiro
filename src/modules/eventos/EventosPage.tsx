@@ -3,6 +3,7 @@ import AppShell from '@components/AppShell';
 import { useAuth } from '@contexts/AuthContext';
 import { addEvent, deleteEvent, updateEvent, EventItem, getEvents } from '@services/eventService';
 import { useNotifications } from '@contexts/NotificationContext';
+import { logService } from '@services/logService';
 
 export default function EventosPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -47,7 +48,7 @@ export default function EventosPage() {
       status: 'pendente',
       created_at: new Date().toISOString(),
     };
-    const id = await addEvent(payload);
+    const id = await addEvent(payload, profile?.email);
     setEvents((prev) => [{ id, ...payload }, ...prev]);
     setForm({ title: '', date: '', time: '', leader: '' });
     addNotification({
@@ -60,13 +61,13 @@ export default function EventosPage() {
     if (!event.id) return;
     const confirmed = window.confirm(`Remover o evento "${event.title}"?`);
     if (!confirmed) return;
-    await deleteEvent(event.id);
+    await deleteEvent(event.id, profile?.email);
     setEvents((prev) => prev.filter((item) => item.id !== event.id));
   };
 
   const handleStatusChange = async (event: EventItem, status: EventItem['status']) => {
     if (!event.id) return;
-    await updateEvent(event.id, { status });
+    await updateEvent(event.id, { status }, profile?.email);
     setEvents((prev) => prev.map((item) => (item.id === event.id ? { ...item, status } : item)));
   };
 

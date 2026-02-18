@@ -1,6 +1,7 @@
 import { db } from './firebase';
 import { collection, addDoc, getDocs, doc, setDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { COLLECTIONS } from './firestoreCollections';
+import { logService } from './logService';
 
 export interface MembershipItem {
   id?: string;
@@ -12,8 +13,9 @@ export interface MembershipItem {
   month?: string;
 }
 
-export async function addMembership(item: Omit<MembershipItem, 'id'>) {
+export async function addMembership(item: Omit<MembershipItem, 'id'>, userEmail?: string) {
   const docRef = await addDoc(collection(db, COLLECTIONS.MEMBERSHIPS), item);
+  if (userEmail) await logService.addLog(userEmail, `Criou mensalidade: ${item.name}`);
   return docRef.id;
 }
 
@@ -22,9 +24,10 @@ export async function getMemberships() {
   return querySnapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as MembershipItem));
 }
 
-export async function updateMembership(id: string, data: Partial<MembershipItem>) {
+export async function updateMembership(id: string, data: Partial<MembershipItem>, userEmail?: string) {
   const docRef = doc(db, COLLECTIONS.MEMBERSHIPS, id);
   await setDoc(docRef, data, { merge: true });
+  if (userEmail) await logService.addLog(userEmail, `Atualizou mensalidade: ${id}`);
 }
 
 export async function clearMemberships() {
@@ -38,7 +41,8 @@ export async function clearMemberships() {
   return snapshot.size;
 }
 
-export async function deleteMembership(id: string) {
+export async function deleteMembership(id: string, userEmail?: string) {
   const docRef = doc(db, COLLECTIONS.MEMBERSHIPS, id);
   await deleteDoc(docRef);
+  if (userEmail) await logService.addLog(userEmail, `Excluiu mensalidade: ${id}`);
 }
