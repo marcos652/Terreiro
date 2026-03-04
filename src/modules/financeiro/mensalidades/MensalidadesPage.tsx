@@ -24,11 +24,18 @@ export default function MensalidadesPage() {
   const [loading, setLoading] = useState(true);
   const [resetting, setResetting] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [goalReduction, setGoalReduction] = useState(0);
+  const [goalReductionInput, setGoalReductionInput] = useState('');
+  const [paidReduction, setPaidReduction] = useState(0);
+  const [paidReductionInput, setPaidReductionInput] = useState('');
+  const [debtReduction, setDebtReduction] = useState(0);
+  const [debtReductionInput, setDebtReductionInput] = useState('');
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberValue, setNewMemberValue] = useState('');
   const { profile } = useAuth();
   const isMaster = profile?.role === 'MASTER';
-  const monthlyGoal = 690;
+  const monthlyGoalBase = 690;
+  const monthlyGoal = Math.max(0, monthlyGoalBase - goalReduction);
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   const defaultNames = [
     'Adriano (Tio Dri)',
@@ -245,6 +252,27 @@ export default function MensalidadesPage() {
     setMembers((prev) => prev.filter((item) => item.id !== member.id));
   };
 
+  const handleApplyGoalReduction = () => {
+    const value = Number(goalReductionInput);
+    if (!value || value <= 0) return;
+    setGoalReduction((prev) => Math.min(monthlyGoalBase, prev + value));
+    setGoalReductionInput('');
+  };
+
+  const handleApplyPaidReduction = () => {
+    const value = Number(paidReductionInput);
+    if (!value || value <= 0) return;
+    setPaidReduction((prev) => Math.max(0, prev + value));
+    setPaidReductionInput('');
+  };
+
+  const handleApplyDebtReduction = () => {
+    const value = Number(debtReductionInput);
+    if (!value || value <= 0) return;
+    setDebtReduction((prev) => Math.max(0, prev + value));
+    setDebtReductionInput('');
+  };
+
   const handleExport = () => {
     const rows = filtered.length > 0 ? filtered : members;
     if (rows.length === 0) return;
@@ -308,15 +336,97 @@ export default function MensalidadesPage() {
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Meta mensal</div>
           <div className="mt-2 text-2xl font-semibold text-ink-900">R$ {formatBRL(monthlyGoal)}</div>
+          <div className="mt-3 text-xs text-ink-500">Meta base: R$ {formatBRL(monthlyGoalBase)}</div>
+          <div className="mt-3 rounded-xl border border-ink-100 bg-ink-50/80 p-3 text-xs text-ink-600">
+            <div className="text-[11px] uppercase tracking-[0.25em] text-ink-400">Retirar valor</div>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                type="number"
+                min="0"
+                className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-700 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100 sm:w-36"
+                placeholder="Ex.: 50"
+                value={goalReductionInput}
+                onChange={(e) => setGoalReductionInput(e.target.value)}
+                disabled={!isMaster}
+              />
+              <button
+                onClick={handleApplyGoalReduction}
+                disabled={!isMaster || !goalReductionInput || Number(goalReductionInput) <= 0}
+                className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
+                type="button"
+              >
+                Retirar valor
+              </button>
+            </div>
+            <div className="mt-2 text-[11px] text-ink-400">
+              Total retirado: R$ {formatBRL(goalReduction)}
+            </div>
+          </div>
         </div>
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Recebido</div>
-          <div className="mt-2 text-2xl font-semibold text-emerald-600">R$ {formatBRL(totals.paid)}</div>
+          <div className="mt-2 text-2xl font-semibold text-emerald-600">
+            R$ {formatBRL(Math.max(0, totals.paid - paidReduction))}
+          </div>
+          <div className="mt-3 text-xs text-ink-500">Valor bruto: R$ {formatBRL(totals.paid)}</div>
+          <div className="mt-3 rounded-xl border border-ink-100 bg-ink-50/80 p-3 text-xs text-ink-600">
+            <div className="text-[11px] uppercase tracking-[0.25em] text-ink-400">Retirar valor</div>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                type="number"
+                min="0"
+                className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-700 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100 sm:w-36"
+                placeholder="Ex.: 50"
+                value={paidReductionInput}
+                onChange={(e) => setPaidReductionInput(e.target.value)}
+                disabled={!isMaster}
+              />
+              <button
+                onClick={handleApplyPaidReduction}
+                disabled={!isMaster || !paidReductionInput || Number(paidReductionInput) <= 0}
+                className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
+                type="button"
+              >
+                Retirar valor
+              </button>
+            </div>
+            <div className="mt-2 text-[11px] text-ink-400">
+              Total retirado: R$ {formatBRL(paidReduction)}
+            </div>
+          </div>
         </div>
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Inadimplencia</div>
           <div className="mt-2 text-2xl font-semibold text-rose-500">
-            {formatBRL(Math.max(0, monthlyGoal - totals.paid))}
+            {formatBRL(Math.max(0, Math.max(0, monthlyGoal - totals.paid) - debtReduction))}
+          </div>
+          <div className="mt-3 text-xs text-ink-500">
+            Inadimplência bruta: R$ {formatBRL(Math.max(0, monthlyGoal - totals.paid))}
+          </div>
+          <div className="mt-3 rounded-xl border border-ink-100 bg-ink-50/80 p-3 text-xs text-ink-600">
+            <div className="text-[11px] uppercase tracking-[0.25em] text-ink-400">Retirar valor</div>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                type="number"
+                min="0"
+                className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-700 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100 sm:w-36"
+                placeholder="Ex.: 50"
+                value={debtReductionInput}
+                onChange={(e) => setDebtReductionInput(e.target.value)}
+                disabled={!isMaster}
+              />
+              <button
+                onClick={handleApplyDebtReduction}
+                disabled={!isMaster || !debtReductionInput || Number(debtReductionInput) <= 0}
+                className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
+                type="button"
+              >
+                Retirar valor
+              </button>
+            </div>
+            <div className="mt-2 text-[11px] text-ink-400">
+              Total retirado: R$ {formatBRL(debtReduction)}
+            </div>
           </div>
         </div>
       </div>

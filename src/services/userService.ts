@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, addDoc, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { COLLECTIONS } from './firestoreCollections';
 import { logService } from './logService';
 
@@ -9,7 +9,7 @@ export interface User {
   email: string;
   password?: string; // hash
   role: 'MASTER' | 'MEMBER';
-  status: 'PENDENTE' | 'APROVADO';
+  status: 'PENDENTE' | 'APROVADO' | 'BLOQUEADO' | 'DESATIVADO';
   created_at: string;
 }
 
@@ -49,4 +49,10 @@ export async function upsertUser(id: string, data: Partial<User>, userEmail?: st
     const changes = Object.entries(data).map(([k, v]) => `${k}: ${v}`).join(', ');
     await logService.addLog(userEmail, `Upsert usuário ${id}: ${changes}`);
   }
+}
+
+export async function deleteUser(id: string, userEmail?: string) {
+  const docRef = doc(db, COLLECTIONS.USERS, id);
+  await deleteDoc(docRef);
+  if (userEmail) await logService.addLog(userEmail, `Removeu usuário: ${id}`);
 }

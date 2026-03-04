@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '@contexts/AuthContext';
+import { upsertUser } from '@services/userService';
 import { auth } from '@services/firebase';
 import { useNotifications } from '@contexts/NotificationContext';
 
@@ -111,7 +112,7 @@ const navItems = [
 
 export default function AppShell({ title, subtitle, actions, children }: AppShellProps) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading, profile } = useAuth();
   const canSignOut = Boolean(auth);
   const [darkMode, setDarkMode] = useState(false);
   const { unreadCount, notifications, markAsRead } = useNotifications();
@@ -119,6 +120,68 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [devtoolsOpen, setDevtoolsOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    if (!auth) return;
+    try {
+      await signOut(auth);
+      router.replace('/login');
+    } catch (error) {
+      console.error('Erro ao sair:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!authLoading && !user) {
+      router.replace('/login');
+    }
+  }, [authLoading, user, router]);
+
+  // Garante que o usuário MASTER tenha documento com o mesmo uid (necessário para regras do Firestore)
+  useEffect(() => {
+    if (!user || profile?.role !== 'MASTER') return;
+    const ensureMasterDoc = async () => {
+      try {
+        await upsertUser(user.uid, {
+          name: profile?.name || user.displayName || user.email?.split('@')[0] || 'Usuário',
+          email: user.email || '',
+          role: 'MASTER',
+          status: 'APROVADO',
+          created_at: profile?.created_at || new Date().toISOString(),
+        });
+      } catch (err) {
+        console.error('Não foi possível garantir doc de usuário MASTER', err);
+      }
+    };
+    ensureMasterDoc();
+  }, [user, profile]);
+
+  // Detecta DevTools aberto e oculta conteúdo sensível
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const checkDevtools = () => {
+      const threshold = 150;
+      const widthDiff = window.outerWidth - window.innerWidth;
+      const heightDiff = window.outerHeight - window.innerHeight;
+      setDevtoolsOpen(widthDiff > threshold || heightDiff > threshold);
+    };
+    const interval = window.setInterval(checkDevtools, 900);
+    window.addEventListener('resize', checkDevtools);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('resize', checkDevtools);
+    };
+  }, []);
+
+  if (authLoading || (!user && typeof window !== 'undefined')) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-sand-50 text-ink-500">
+        Carregando...
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -188,6 +251,16 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   return (
     <div className="min-h-screen bg-sand-50 text-ink-900 overflow-x-hidden">
       <div className="relative">
+        {devtoolsOpen && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-6 text-center text-white">
+            <div className="max-w-md space-y-3">
+              <div className="text-lg font-semibold">Dados protegidos</div>
+              <div className="text-sm text-ink-100/80">
+                Feche o DevTools (F12) para visualizar o painel.
+              </div>
+            </div>
+          </div>
+        )}
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.20),_rgba(255,255,255,0))]" />
         <div className="flex min-h-screen">
           <aside className="relative hidden w-72 flex-shrink-0 border-r border-gray-800 bg-black backdrop-blur md:flex md:flex-col lg:w-80">
@@ -336,12 +409,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                     </span>
                   )}
                   <button
-                    onClick={() => {
-                      if (!auth) {
-                        return;
-                      }
-                      signOut(auth);
-                    }}
+                    onClick={handleSignOut}
                     disabled={!canSignOut}
                     className={`w-full rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-ink-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto`}
                   >

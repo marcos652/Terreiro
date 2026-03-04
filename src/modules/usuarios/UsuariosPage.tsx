@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
 import { useAuth } from '@contexts/AuthContext';
-import { getUsers, updateUser, User } from '@services/userService';
+import { addUser, deleteUser, getUsers, updateUser, User } from '@services/userService';
 
 type RoleFilter = 'ALL' | 'MASTER' | 'MEMBER';
 
@@ -11,6 +11,7 @@ export default function UsuariosPage() {
   const [search, setSearch] = useState('');
   const [role, setRole] = useState<RoleFilter>('ALL');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'MEMBER' as User['role'], password: '' });
   const { profile } = useAuth();
   const isMaster = profile?.role === 'MASTER';
 
@@ -70,6 +71,61 @@ export default function UsuariosPage() {
     }
   };
 
+  const handleBlock = async (user: User) => {
+    if (!user.id) return;
+    setUpdatingId(user.id);
+    try {
+      await updateUser(user.id, { status: 'BLOQUEADO' });
+      setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, status: 'BLOQUEADO' } : item)));
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleDeactivate = async (user: User) => {
+    if (!user.id) return;
+    setUpdatingId(user.id);
+    try {
+      await updateUser(user.id, { status: 'DESATIVADO' });
+      setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, status: 'DESATIVADO' } : item)));
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleRemove = async (user: User) => {
+    if (!user.id) return;
+    const confirmed = window.confirm(`Remover ${user.name}?`);
+    if (!confirmed) return;
+    setUpdatingId(user.id);
+    try {
+      await deleteUser(user.id, profile?.email);
+      setUsers((prev) => prev.filter((item) => item.id !== user.id));
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleCreateUser = async () => {
+    if (!newUser.name || !newUser.email) return;
+    setUpdatingId('new');
+    try {
+      const payload: Omit<User, 'id'> = {
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        status: 'PENDENTE',
+        password: newUser.password || undefined,
+        created_at: new Date().toISOString(),
+      };
+      const id = await addUser(payload, profile?.email);
+      setUsers((prev) => [{ id, ...payload }, ...prev]);
+      setNewUser({ name: '', email: '', role: 'MEMBER', password: '' });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const handleClearTeam = async () => {
     const confirmed = window.confirm('Tem certeza que deseja limpar as notificacoes da equipe?');
     if (!confirmed) return;
@@ -118,6 +174,49 @@ export default function UsuariosPage() {
             <div className="rounded-xl border border-ink-100 bg-ink-50 p-3 text-xs text-ink-500">
               Mantenha o cadastro atualizado para garantir mensagens e avisos.
             </div>
+            <div className="rounded-2xl border border-ink-100 bg-white p-4 text-xs text-ink-500">
+              <div className="text-[11px] uppercase tracking-[0.25em] text-ink-400">Criar usuário</div>
+              <div className="mt-2 flex flex-col gap-2">
+                <input
+                  className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
+                  placeholder="Nome"
+                  value={newUser.name}
+                  onChange={(e) => setNewUser((prev) => ({ ...prev, name: e.target.value }))}
+                  disabled={!isMaster || updatingId === 'new'}
+                />
+                <input
+                  className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
+                  placeholder="E-mail"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser((prev) => ({ ...prev, email: e.target.value }))}
+                  disabled={!isMaster || updatingId === 'new'}
+                />
+                <input
+                  className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
+                  placeholder="Senha (opcional)"
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser((prev) => ({ ...prev, password: e.target.value }))}
+                  disabled={!isMaster || updatingId === 'new'}
+                />
+                <select
+                  className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
+                  value={newUser.role}
+                  onChange={(e) => setNewUser((prev) => ({ ...prev, role: e.target.value as User['role'] }))}
+                  disabled={!isMaster || updatingId === 'new'}
+                >
+                  <option value="MEMBER">Visualização</option>
+                  <option value="MASTER">Master</option>
+                </select>
+                <button
+                  onClick={handleCreateUser}
+                  disabled={!isMaster || updatingId === 'new' || !newUser.name.trim() || !newUser.email.trim()}
+                  className="w-full rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
+                >
+                  {updatingId === 'new' ? 'Criando...' : 'Criar usuário'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -150,6 +249,11 @@ export default function UsuariosPage() {
                   <span className="rounded-full bg-ink-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
                     {roleLabel(user.role)}
                   </span>
+                  <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
+                    {user.status}
+                  </span>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
                   {user.status !== 'APROVADO' && (
                     <button
                       onClick={() => handleApprove(user)}
@@ -159,6 +263,27 @@ export default function UsuariosPage() {
                       Aprovar
                     </button>
                   )}
+                  <button
+                    onClick={() => handleDeactivate(user)}
+                    disabled={!isMaster || updatingId === user.id}
+                    className="rounded-lg border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-700 hover:border-amber-300 disabled:opacity-60"
+                  >
+                    Desativar
+                  </button>
+                  <button
+                    onClick={() => handleBlock(user)}
+                    disabled={!isMaster || updatingId === user.id}
+                    className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300 disabled:opacity-60"
+                  >
+                    Bloquear
+                  </button>
+                  <button
+                    onClick={() => handleRemove(user)}
+                    disabled={!isMaster || updatingId === user.id}
+                    className="rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-600 hover:border-ink-300 disabled:opacity-60"
+                  >
+                    Remover
+                  </button>
                 </div>
               </div>
             ))}

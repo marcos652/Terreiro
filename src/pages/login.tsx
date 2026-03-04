@@ -8,7 +8,7 @@ import { getUserById, upsertUser } from '@services/userService';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode] = useState<'login' | 'register'>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -28,35 +28,18 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      if (mode === 'register') {
-        const credential = await createUserWithEmailAndPassword(auth, email, password);
-        const uid = credential.user.uid;
-        const name = email.split('@')[0] || 'Usuário';
-        await upsertUser(uid, {
-          name,
-          email,
-          role: 'MEMBER',
-          status: 'PENDENTE',
-          created_at: new Date().toISOString(),
-        });
-        setInfo('Conta criada. Aguarde a validação do administrador para acessar o painel.');
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+      const uid = credential.user.uid;
+      const userDoc = await getUserById(uid);
+      if (!userDoc || userDoc.status !== 'APROVADO') {
+        setError('Seu acesso está em validação pelo administrador.');
         await signOut(auth);
         setLoading(false);
         return;
-      } else {
-        const credential = await signInWithEmailAndPassword(auth, email, password);
-        const uid = credential.user.uid;
-        const userDoc = await getUserById(uid);
-        if (!userDoc || userDoc.status !== 'APROVADO') {
-          setError('Seu acesso está em validação pelo administrador.');
-          await signOut(auth);
-          setLoading(false);
-          return;
-        }
       }
       router.push('/');
     } catch (err: any) {
-      setError(mode === 'register' ? 'Não foi possível criar a conta.' : 'Usuário ou senha inválidos.');
+      setError('Usuário ou senha inválidos.');
     } finally {
       setLoading(false);
     }
@@ -127,34 +110,17 @@ export default function LoginPage() {
             >
               <div className="mb-6">
                 <div className="text-xs uppercase tracking-[0.3em] text-ink-300">Acesso</div>
-                <h2 className="font-display text-4xl font-semibold text-ink-900">
-                  {mode === 'register' ? 'Criar conta' : 'Entrar no painel'}
-                </h2>
-                <p className="text-lg text-ink-500">
-                  {mode === 'register'
-                    ? 'Cadastre um novo acesso para o painel.'
-                    : 'Use seu e-mail e senha cadastrados.'}
-                </p>
+                <h2 className="font-display text-4xl font-semibold text-ink-900">Entrar no painel</h2>
+                <p className="text-lg text-ink-500">Use seu e-mail e senha cadastrados.</p>
               </div>
               <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-2 text-xs font-semibold text-ink-400">
                   <button
                     type="button"
-                    onClick={() => setMode('login')}
-                    className={`rounded-full px-4 py-1 ${
-                      mode === 'login' ? 'bg-ink-900 text-white' : 'bg-ink-100'
-                    }`}
+                    className="rounded-full px-4 py-1 bg-ink-900 text-white cursor-default"
+                    disabled
                   >
                     Entrar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMode('register')}
-                    className={`rounded-full px-4 py-1 ${
-                      mode === 'register' ? 'bg-ink-900 text-white' : 'bg-ink-100'
-                    }`}
-                  >
-                    Criar conta
                   </button>
                 </div>
                 <label className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">
