@@ -112,12 +112,8 @@ export default function LoginPage() {
                 <span>Templo Luz e Fé</span>
               </div>
               <h1 className="font-display text-5xl font-semibold leading-tight text-ink-900 md:text-6xl">
-                Seja bem-vindo, que os orixás te abençoem
+                Seja bem-vindo, que os orixás te abençoem!
               </h1>
-              <p className="max-w-md text-lg text-ink-500">
-                Acesse o painel com segurança para acompanhar rituais, estoque e financeiro em um
-                único lugar.
-              </p>
               <div className="flex flex-wrap items-center gap-3 text-xs text-ink-400">
                 <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Seguro</span>
                 <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Organizado</span>
