@@ -75,15 +75,6 @@ export default function EventosPage() {
     <AppShell
       title="Eventos e Cultos"
       subtitle="Planejamento de agendas, equipes e responsáveis."
-      actions={
-        <button
-          onClick={handleAddEvent}
-          disabled={!isMaster}
-          className="w-full rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-500 disabled:opacity-60 sm:w-auto"
-        >
-          Criar evento
-        </button>
-      }
     >
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_2fr]">
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
@@ -119,6 +110,13 @@ export default function EventosPage() {
               onChange={(event) => setForm((prev) => ({ ...prev, leader: event.target.value }))}
               disabled={!isMaster}
             />
+            <button
+              onClick={handleAddEvent}
+              disabled={!isMaster}
+              className="w-full rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-500 disabled:opacity-60"
+            >
+              Criar evento
+            </button>
             <div className="rounded-xl border border-ink-100 bg-ink-50 p-3 text-xs text-ink-500">
               Novos eventos entram como pendentes até confirmação.
             </div>

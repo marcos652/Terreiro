@@ -1,40 +1,56 @@
-import { useEffect, useState } from "react";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
-import { db } from "../services/firebase";
-import AppShell from "../components/AppShell";
+import { useEffect, useState } from 'react';
+import { Timestamp, collection, getDocs, orderBy, query } from 'firebase/firestore';
+import AppShell from '@components/AppShell';
+import { db } from '@services/firebase';
+
+type LogItem = {
+  id: string;
+  action?: string;
+  userEmail?: string;
+  timestamp?: Timestamp;
+};
 
 export default function LogsPage() {
-  const [logs, setLogs] = useState([]);
+  const [logs, setLogs] = useState<LogItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    async function fetchLogs() {
+    const fetchLogs = async () => {
       setLoading(true);
-      setError("");
+      setError('');
       try {
-        const q = query(collection(db, "logs"), orderBy("timestamp", "desc"));
+        const q = query(collection(db, 'logs'), orderBy('timestamp', 'desc'));
         const snapshot = await getDocs(q);
-        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as LogItem[];
         setLogs(items);
       } catch (err) {
-        setError("Erro ao carregar logs: " + (err?.message || ""));
+        setError(`Erro ao carregar logs: ${(err as Error)?.message || ''}`);
       } finally {
         setLoading(false);
       }
-    }
+    };
+
     fetchLogs();
   }, []);
 
+  const formatDate = (ts?: Timestamp) => {
+    try {
+      return ts ? ts.toDate().toLocaleString('pt-BR') : '—';
+    } catch {
+      return '—';
+    }
+  };
+
   return (
     <AppShell title="Logs de Auditoria">
-      <div className="bg-white rounded-2xl p-6 shadow-floating">
+      <div className="rounded-2xl bg-white p-6 shadow-floating">
         {loading ? (
-          <div>Carregando...</div>
+          <div className="text-sm text-ink-500">Carregando...</div>
         ) : error ? (
-          <div className="text-red-600">{error}</div>
+          <div className="text-sm text-rose-600">{error}</div>
         ) : logs.length === 0 ? (
-          <div>Nenhum log encontrado.</div>
+          <div className="text-sm text-ink-500">Nenhum log encontrado.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -46,11 +62,11 @@ export default function LogsPage() {
                 </tr>
               </thead>
               <tbody>
-                {logs.map(log => (
+                {logs.map((log) => (
                   <tr key={log.id} className="border-b last:border-none">
-                    <td className="px-4 py-2">{log.timestamp?.toDate?.().toLocaleString?.() || "-"}</td>
-                    <td className="px-4 py-2">{log.userEmail}</td>
-                    <td className="px-4 py-2">{log.action}</td>
+                    <td className="px-4 py-2">{formatDate(log.timestamp)}</td>
+                    <td className="px-4 py-2">{log.userEmail || '—'}</td>
+                    <td className="px-4 py-2">{log.action || '—'}</td>
                   </tr>
                 ))}
               </tbody>

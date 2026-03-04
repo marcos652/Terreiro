@@ -35,6 +35,14 @@
         "src/hooks/*"
       ]
     },
+    "types": [
+      "node"
+    ],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "moduleResolution": "node"
   },
   "include": [

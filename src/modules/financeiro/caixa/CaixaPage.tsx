@@ -110,13 +110,6 @@ export default function CaixaPage() {
           >
             Retirada
           </button>
-          <button
-            onClick={handleAdd}
-            className="w-full rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60 sm:w-auto"
-            disabled={!isMaster}
-          >
-            Registrar movimento
-          </button>
         </div>
       }
     >
@@ -181,6 +174,13 @@ export default function CaixaPage() {
                 <option>Cartão</option>
               </select>
             </div>
+            <button
+              onClick={handleAdd}
+              className="w-full rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
+              disabled={!isMaster}
+            >
+              Registrar movimento
+            </button>
             <div className="rounded-xl border border-ink-100 bg-ink-50 p-3 text-xs text-ink-500">
               Os lançamentos são exibidos no histórico imediatamente.
             </div>

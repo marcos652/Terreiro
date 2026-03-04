@@ -2,22 +2,22 @@ import {
   collection,
   type CollectionReference,
   type DocumentData,
-} from "firebase/firestore";
-import { db } from "./firebase";
-import type { User } from "./userService";
-import type { Event } from "./eventService";
-import type { Transaction } from "./transactionService";
-import type { Membership } from "./membershipService";
-import type { StockEntry } from "./stockService";
-import type { Cantiga } from "./cantigasService";
-import { FieldValue } from "firebase/firestore";
+  Timestamp,
+  FieldValue,
+} from 'firebase/firestore';
+import { db } from './firebase';
+import type { User } from './userService';
+import type { EventItem } from './eventService';
+import type { CashTransaction } from './transactionService';
+import type { MembershipItem } from './membershipService';
+import type { StockItem } from './stockService';
+import type { CantigaItem } from './cantigasService';
 
-// THIS IS THE HELPER FUNCTION
-const createCollection = <T = DocumentData>(collectionName: string) => {
-  return collection(db, collectionName) as CollectionReference<T>;
-};
+// Helper to create typed collections
+const createCollection = <T = DocumentData>(collectionName: string) =>
+  collection(db, collectionName) as CollectionReference<T>;
 
-// Definição dos nomes das coleções do Firestore
+// Nomes centralizados das coleções do Firestore
 export const COLLECTIONS = {
   USERS: 'users',
   STOCK_ITEMS: 'stock_items',
@@ -27,17 +27,22 @@ export const COLLECTIONS = {
   FOCUS_NOTES: 'focus_notes',
   CANTIGAS: 'cantigas',
   ACTION_ITEMS: 'action_items',
-};
+  LOGS: 'logs',
+} as const;
 
-export const usersCollection = createCollection<User>("users");
-export const stockCollection = createCollection<StockEntry>("stock");
-export const cantigasCollection = createCollection<Cantiga>("cantigas");
+// Coleções tipadas
+export const usersCollection = createCollection<User>(COLLECTIONS.USERS);
+export const stockCollection = createCollection<StockItem>(COLLECTIONS.STOCK_ITEMS);
+export const eventsCollection = createCollection<EventItem>(COLLECTIONS.EVENTS);
+export const transactionsCollection = createCollection<CashTransaction>(COLLECTIONS.CASH_TRANSACTIONS);
+export const membershipsCollection = createCollection<MembershipItem>(COLLECTIONS.MEMBERSHIPS);
+export const cantigasCollection = createCollection<CantigaItem>(COLLECTIONS.CANTIGAS);
 
 export type LogEntry = {
   id?: string;
-  timestamp: FieldValue;
+  timestamp: FieldValue | Timestamp;
   userEmail: string;
   action: string;
 };
 
-export const logsCollection = createCollection<LogEntry>("logs");
+export const logsCollection = createCollection<LogEntry>(COLLECTIONS.LOGS);
