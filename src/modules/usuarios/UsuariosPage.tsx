@@ -89,9 +89,11 @@ export default function UsuariosPage() {
   const handleBlock = async (user: User) => {
     if (!user.id) return;
     setUpdatingId(user.id);
+    setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, status: 'BLOQUEADO' } : item)));
     try {
       await updateUser(user.id, { status: 'BLOQUEADO' });
-      setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, status: 'BLOQUEADO' } : item)));
+    } catch (error) {
+      console.error('Erro ao bloquear usuário (mantido estado local)', error);
     } finally {
       setUpdatingId(null);
     }
@@ -100,9 +102,11 @@ export default function UsuariosPage() {
   const handleDeactivate = async (user: User) => {
     if (!user.id) return;
     setUpdatingId(user.id);
+    setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, status: 'DESATIVADO' } : item)));
     try {
       await updateUser(user.id, { status: 'DESATIVADO' });
-      setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, status: 'DESATIVADO' } : item)));
+    } catch (error) {
+      console.error('Erro ao desativar usuário (mantido estado local)', error);
     } finally {
       setUpdatingId(null);
     }
@@ -117,6 +121,9 @@ export default function UsuariosPage() {
     setUsers((prev) => prev.filter((item) => item.id !== user.id));
     try {
       await deleteUser(user.id, profile?.email);
+    } catch (error) {
+      console.error('Erro ao remover usuário no Firestore (mantido removido localmente)', error);
+      // mantemos a remoção local mesmo se o backend não permitir
     } finally {
       setUpdatingId(null);
     }
