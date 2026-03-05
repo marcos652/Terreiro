@@ -86,22 +86,17 @@ export default function LoginPage() {
       }
 
       const uid = credential.user.uid;
-      let userDoc = await getUserById(uid);
+      const userDoc = await getUserById(uid);
       if (!userDoc) {
-        // cria ficha básica aprovada se não existir
-        await upsertUser(uid, {
-          name: normalizedEmail.split('@')[0],
-          email: normalizedEmail,
-          role: 'MEMBER',
-          status: 'APROVADO',
-          created_at: new Date().toISOString(),
-        });
-        userDoc = await getUserById(uid);
+        setError('Seu usuário ainda não foi cadastrado no painel. Peça para o master aprovar/criar seu acesso.');
+        await signOut(auth);
+        setLoading(false);
+        return;
       }
-      if (!userDoc || userDoc.status !== 'APROVADO') {
-        if (userDoc?.status === 'BLOQUEADO') {
+      if (userDoc.status !== 'APROVADO') {
+        if (userDoc.status === 'BLOQUEADO') {
           setError('Usuário bloqueado. Fale com o master.');
-        } else if (userDoc?.status === 'DESATIVADO') {
+        } else if (userDoc.status === 'DESATIVADO') {
           setError('Usuário desativado.');
         } else {
           setError('Seu acesso está em validação pelo administrador.');
