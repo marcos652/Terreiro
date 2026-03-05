@@ -4,6 +4,8 @@ import { useRouter } from 'next/router';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, firebaseConfigMissing } from '@services/firebase';
 import { getUserById, upsertUser } from '@services/userService';
+import { initializeApp, getApp, getApps } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -30,7 +32,49 @@ export default function LoginPage() {
       }
       const normalizedEmail = email.trim().toLowerCase();
       const normalizedPassword = password.trim();
-      const credential = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword);
+      let credential;
+      try {
+        credential = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword);
+      } catch (err: any) {
+        const code = err?.code || '';
+        const isNotFound = code === 'auth/user-not-found' || code === 'auth/invalid-credential';
+        if (isNotFound) {
+          // Tenta criar a conta se não existir no Auth
+          const secondaryAuth =
+            typeof window === 'undefined'
+              ? null
+              : getAuth(
+                  getApps().find((a) => a.name === 'login-helper') ??
+                    initializeApp(
+                      {
+                        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+                        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+                        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+                      },
+                      'login-helper'
+                    )
+                );
+          if (!secondaryAuth) throw err;
+          const created = await createUserWithEmailAndPassword(
+            secondaryAuth,
+            normalizedEmail,
+            normalizedPassword
+          );
+          // Cria/atualiza doc do usuário como aprovado e member
+          await upsertUser(created.user.uid, {
+            name: normalizedEmail.split('@')[0],
+            email: normalizedEmail,
+            role: 'MEMBER',
+            status: 'APROVADO',
+            created_at: new Date().toISOString(),
+          });
+          // tenta logar de novo na auth principal
+          credential = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword);
+        } else {
+          throw err;
+        }
+      }
+
       const uid = credential.user.uid;
       const userDoc = await getUserById(uid);
       if (!userDoc || userDoc.status !== 'APROVADO') {
