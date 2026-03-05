@@ -16,7 +16,7 @@ export default function CaixaPage() {
     new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
   const { user, loading: authLoading, profile } = useAuth();
   const router = useRouter();
-  const isMaster = profile?.role === 'MASTER';
+  const isMaster = profile?.role?.toUpperCase() === 'MASTER';
   const canEdit =
     isMaster || (profile?.role === 'EDITOR' && profile.permissions?.includes('caixa'));
   const [transactions, setTransactions] = useState<CashTransaction[]>([]);

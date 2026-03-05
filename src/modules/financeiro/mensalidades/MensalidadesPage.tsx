@@ -33,7 +33,7 @@ export default function MensalidadesPage() {
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberValue, setNewMemberValue] = useState('');
   const { profile } = useAuth();
-  const isMaster = profile?.role === 'MASTER';
+  const isMaster = profile?.role?.toUpperCase() === 'MASTER';
   const canEdit =
     isMaster || (profile?.role === 'EDITOR' && profile.permissions?.includes('mensalidades'));
   const monthlyGoalBase = 690;

@@ -30,7 +30,7 @@ export default function UsuariosPage() {
   const [permDraft, setPermDraft] = useState<string[]>([]);
   const [savingDetail, setSavingDetail] = useState(false);
   const { profile } = useAuth();
-  const isMaster = profile?.role === 'MASTER';
+  const isMaster = profile?.role?.toUpperCase() === 'MASTER';
   // Auth secundário para criar contas sem deslogar o admin
   const secondaryAuth =
     typeof window === 'undefined'
