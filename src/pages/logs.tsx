@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Timestamp, collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { Timestamp, collection, getDocs, orderBy, query, deleteDoc } from 'firebase/firestore';
 import AppShell from '@components/AppShell';
 import { db } from '@services/firebase';
+import { useAuth } from '@contexts/AuthContext';
 
 type LogItem = {
   id: string;
@@ -14,6 +15,9 @@ export default function LogsPage() {
   const [logs, setLogs] = useState<LogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [clearing, setClearing] = useState(false);
+  const { profile } = useAuth();
+  const isMaster = profile?.role === 'MASTER';
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -45,6 +49,29 @@ export default function LogsPage() {
   return (
     <AppShell title="Logs de Auditoria">
       <div className="rounded-2xl bg-white p-6 shadow-floating">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm font-semibold text-ink-800">Histórico de auditoria</div>
+          <button
+            onClick={async () => {
+              if (!isMaster) return;
+              setClearing(true);
+              setError('');
+              try {
+                const snap = await getDocs(collection(db, 'logs'));
+                await Promise.all(snap.docs.map((doc) => deleteDoc(doc.ref)));
+                setLogs([]);
+              } catch (err) {
+                setError('Não foi possível limpar os logs. Verifique permissão.');
+              } finally {
+                setClearing(false);
+              }
+            }}
+            disabled={!isMaster || clearing || logs.length === 0}
+            className="rounded-xl border border-ink-200 bg-white px-4 py-2 text-xs font-semibold text-ink-700 shadow-sm hover:border-ink-300 disabled:opacity-60"
+          >
+            {clearing ? 'Limpando...' : 'Limpar logs'}
+          </button>
+        </div>
         {loading ? (
           <div className="text-sm text-ink-500">Carregando...</div>
         ) : error ? (
