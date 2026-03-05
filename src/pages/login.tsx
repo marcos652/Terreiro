@@ -34,20 +34,8 @@ export default function LoginPage() {
       const normalizedPassword = password.trim();
 
       if (mode === 'register') {
-        const secondaryAuth =
-          typeof window === 'undefined'
-            ? null
-            : getAuth(
-                getApps().find((a) => a.name === 'login-helper') ??
-                  initializeApp(firebaseConfig, 'login-helper')
-              );
-        if (!secondaryAuth) {
-          setError('Não foi possível iniciar o Firebase para criar usuário.');
-          setLoading(false);
-          return;
-        }
         try {
-          const cred = await createUserWithEmailAndPassword(secondaryAuth, normalizedEmail, normalizedPassword);
+          const cred = await createUserWithEmailAndPassword(auth, normalizedEmail, normalizedPassword);
           const uid = cred.user.uid;
           await upsertUser(uid, {
             name: normalizedEmail.split('@')[0],
@@ -56,7 +44,7 @@ export default function LoginPage() {
             status: 'PENDENTE',
             created_at: new Date().toISOString(),
           });
-          await secondaryAuth.signOut().catch(() => {});
+          // Sai da sessão criada para não trocar o master atual
           await signOut(auth).catch(() => {});
           setInfo('Conta criada. Aguarde aprovação do master para acessar.');
           setPassword('');
@@ -67,11 +55,13 @@ export default function LoginPage() {
           const code = err?.code || '';
           if (code === 'auth/email-already-in-use') {
             try {
-              await sendPasswordResetEmail(secondaryAuth, normalizedEmail);
+              await sendPasswordResetEmail(auth, normalizedEmail);
               setInfo('E-mail já cadastrado. Enviamos um link para redefinir a senha.');
             } catch {
               setError('E-mail já cadastrado. Tente recuperar a senha.');
             }
+          } else if (code === 'auth/weak-password') {
+            setError('Senha muito curta. Use 6 caracteres ou mais.');
           } else {
             setError('Não foi possível criar a conta. Verifique o e-mail ou tente outra senha.');
           }
