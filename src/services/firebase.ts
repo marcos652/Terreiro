@@ -38,6 +38,7 @@ const app =
 export const db: Firestore = app ? getFirestore(app) : (null as unknown as Firestore);
 export const auth: Auth = app ? getAuth(app) : (null as unknown as Auth);
 export const firebaseConfigMissing = missingFirebaseConfig;
+export { firebaseConfig };
 
 // Analytics should only be initialized in the browser.
 let analytics: import('firebase/analytics').Analytics | undefined = undefined;

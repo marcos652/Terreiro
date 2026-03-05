@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
 import { useAuth } from '@contexts/AuthContext';
-import { addUser, deleteUser, getUsers, updateUser, User } from '@services/userService';
+import { addUser, deleteUser, getUsers, updateUser, upsertUserById, User } from '@services/userService';
+import { createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
+import { auth, firebaseConfig } from '@services/firebase';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 
 type RoleFilter = 'ALL' | 'MASTER' | 'MEMBER';
 const menuPermissions = [
@@ -28,6 +31,13 @@ export default function UsuariosPage() {
   const [savingDetail, setSavingDetail] = useState(false);
   const { profile } = useAuth();
   const isMaster = profile?.role === 'MASTER';
+  // Auth secundário para criar contas sem deslogar o admin
+  const secondaryAuth =
+    typeof window === 'undefined'
+      ? null
+      : getAuth(
+          getApps().find((a) => a.name === 'admin-app') ?? initializeApp(firebaseConfig, 'admin-app')
+        );
 
   const roleLabel = (value?: User['role']) => {
     if (value === 'MASTER') return 'Master';
@@ -132,20 +142,30 @@ export default function UsuariosPage() {
   };
 
   const handleCreateUser = async () => {
-    if (!newUser.name || !newUser.email) return;
+    if (!newUser.name || !newUser.email || !newUser.password) return;
     setUpdatingId('new');
     try {
+      // Cria no Firebase Auth para habilitar login
+      const cred = await createUserWithEmailAndPassword(
+        secondaryAuth || auth,
+        newUser.email,
+        newUser.password
+      );
+      const uid = cred.user.uid;
       const payload: Omit<User, 'id'> = {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
-        status: 'PENDENTE',
-        password: newUser.password || undefined,
+        status: 'APROVADO',
         created_at: new Date().toISOString(),
+        permissions: newUser.role === 'EDITOR' ? menuPermissions.map((m) => m.key) : undefined,
       };
-      const id = await addUser(payload, profile?.email);
-      setUsers((prev) => [{ id, ...payload }, ...prev]);
+      await upsertUserById(uid, payload, profile?.email);
+      setUsers((prev) => [{ id: uid, ...payload }, ...prev]);
       setNewUser({ name: '', email: '', role: 'MEMBER', password: '' });
+    } catch (error) {
+      console.error('Erro ao criar usuário/auth', error);
+      alert('Não foi possível criar usuário. Verifique se o e-mail já existe ou as permissões.');
     } finally {
       setUpdatingId(null);
     }

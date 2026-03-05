@@ -20,6 +20,13 @@ export async function addUser(user: Omit<User, 'id'>, userEmail?: string) {
   return docRef.id;
 }
 
+export async function upsertUserById(id: string, data: Omit<User, 'id'>, userEmail?: string) {
+  const docRef = doc(db, COLLECTIONS.USERS, id);
+  await setDoc(docRef, data, { merge: true });
+  if (userEmail) await logService.addLog(userEmail, `Upsert usuário ${id}: ${data.email}`);
+  return id;
+}
+
 export async function getUsers() {
   const querySnapshot = await getDocs(collection(db, COLLECTIONS.USERS));
   return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
