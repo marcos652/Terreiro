@@ -99,7 +99,13 @@ export default function LoginPage() {
         userDoc = await getUserById(uid);
       }
       if (!userDoc || userDoc.status !== 'APROVADO') {
-        setError('Seu acesso está em validação pelo administrador.');
+        if (userDoc?.status === 'BLOQUEADO') {
+          setError('Usuário bloqueado. Fale com o master.');
+        } else if (userDoc?.status === 'DESATIVADO') {
+          setError('Usuário desativado.');
+        } else {
+          setError('Seu acesso está em validação pelo administrador.');
+        }
         await signOut(auth);
         setLoading(false);
         return;
