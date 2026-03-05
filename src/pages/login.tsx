@@ -63,8 +63,18 @@ export default function LoginPage() {
           setMode('login');
           setLoading(false);
           return;
-        } catch (err) {
-          setError('Não foi possível criar a conta. Verifique o e-mail ou tente outra senha.');
+        } catch (err: any) {
+          const code = err?.code || '';
+          if (code === 'auth/email-already-in-use') {
+            try {
+              await sendPasswordResetEmail(secondaryAuth, normalizedEmail);
+              setInfo('E-mail já cadastrado. Enviamos um link para redefinir a senha.');
+            } catch {
+              setError('E-mail já cadastrado. Tente recuperar a senha.');
+            }
+          } else {
+            setError('Não foi possível criar a conta. Verifique o e-mail ou tente outra senha.');
+          }
           setLoading(false);
           return;
         }
