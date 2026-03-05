@@ -13,6 +13,11 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches("(?i)^master$"));
   }
 
+  function isEditor() {
+    return request.auth != null
+      && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches("(?i)^editor$");
+  }
+
   match /databases/{database}/documents {
 
     match /users/{userId} {
@@ -29,33 +34,33 @@ service cloud.firestore {
 
     match /stock_items/{docId} {
       allow read: if request.auth != null;
-      allow write: if isMaster();
+      allow write: if isMaster() || isEditor();
     }
 
     match /events/{docId} {
       allow read: if request.auth != null;
-      allow write: if isMaster();
+      allow write: if isMaster() || isEditor();
     }
 
     match /cash_transactions/{docId} {
       allow read: if request.auth != null;
-      allow write: if isMaster();
+      allow write: if isMaster() || isEditor();
     }
 
     match /memberships/{docId} {
       allow read: if request.auth != null;
-      allow write: if isMaster();
+      allow write: if isMaster() || isEditor();
     }
 
     match /focus_notes/{docId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
-      allow update, delete: if isMaster();
+      allow update, delete: if isMaster() || isEditor();
     }
 
     match /cantigas/{docId} {
       allow read: if request.auth != null;
-      allow write: if isMaster();
+      allow write: if isMaster() || isEditor();
     }
 
     match /action_items/{docId} {
@@ -63,12 +68,12 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.resource.data.created_by == request.auth.uid;
       allow update: if request.auth != null
-        && (isMaster() || resource.data.created_by == request.auth.uid);
-      allow delete: if isMaster();
+        && (isMaster() || isEditor() || resource.data.created_by == request.auth.uid);
+      allow delete: if isMaster() || isEditor();
     }
 
     match /logs/{logId} {
-      allow read, write: if isMaster();
+      allow read, write: if isMaster() || isEditor();
     }
   }
 }
