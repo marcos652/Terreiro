@@ -112,10 +112,11 @@ export default function UsuariosPage() {
     if (!user.id) return;
     const confirmed = window.confirm(`Remover ${user.name}?`);
     if (!confirmed) return;
+    // Remoção otimista: tira da lista imediatamente
     setUpdatingId(user.id);
+    setUsers((prev) => prev.filter((item) => item.id !== user.id));
     try {
       await deleteUser(user.id, profile?.email);
-      setUsers((prev) => prev.filter((item) => item.id !== user.id));
     } finally {
       setUpdatingId(null);
     }
