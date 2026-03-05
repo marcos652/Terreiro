@@ -17,6 +17,7 @@ type AppShellProps = {
 
 const navItems = [
   {
+    key: 'dashboard',
     label: 'Dashboard',
     href: '/',
     icon: (
@@ -27,6 +28,7 @@ const navItems = [
     ),
   },
   {
+    key: 'caixa',
     label: 'Caixa',
     href: '/financeiro/caixa',
     icon: (
@@ -38,6 +40,7 @@ const navItems = [
     ),
   },
   {
+    key: 'mensalidades',
     label: 'Mensalidades',
     href: '/financeiro/mensalidades',
     icon: (
@@ -48,6 +51,7 @@ const navItems = [
     ),
   },
   {
+    key: 'eventos',
     label: 'Eventos',
     href: '/eventos',
     icon: (
@@ -58,6 +62,7 @@ const navItems = [
     ),
   },
   {
+    key: 'cantigas',
     label: 'Cantigas',
     href: '/cantigas',
     icon: (
@@ -68,6 +73,7 @@ const navItems = [
     ),
   },
   {
+    key: 'youtube',
     label: 'Youtube Macumba',
     href: '/youtube-macumba',
     icon: (
@@ -78,6 +84,7 @@ const navItems = [
     ),
   },
   {
+    key: 'estoque',
     label: 'Estoque',
     href: '/estoque',
     icon: (
@@ -89,6 +96,7 @@ const navItems = [
     ),
   },
   {
+    key: 'usuarios',
     label: 'Usuários',
     href: '/usuarios',
     icon: (
@@ -99,6 +107,7 @@ const navItems = [
     ),
   },
   {
+    key: 'logs',
     label: 'Logs',
     href: '/logs',
     icon: (
@@ -121,6 +130,25 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [devtoolsOpen, setDevtoolsOpen] = useState(false);
+
+  const allowedNavItems = navItems.filter((item) => {
+    if (!profile) return false;
+    if (profile.role === 'MASTER') return true;
+    if (profile.role === 'EDITOR') {
+      return Array.isArray(profile.permissions) && profile.permissions.includes(item.key as string);
+    }
+    return true; // MEMBER vê o menu todo
+  });
+
+  useEffect(() => {
+    if (!user || !profile) return;
+    if (profile.role === 'EDITOR' && allowedNavItems.length > 0) {
+      const currentAllowed = allowedNavItems.some((item) => item.href === router.pathname);
+      if (!currentAllowed) {
+        router.replace(allowedNavItems[0].href);
+      }
+    }
+  }, [user, profile, allowedNavItems, router]);
 
   const handleSignOut = async () => {
     if (!auth) return;
@@ -201,7 +229,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   };
 
   const searchItems = [
-    ...navItems.map((item) => ({ label: item.label, href: item.href, type: 'Menu' as const })),
+    ...allowedNavItems.map((item) => ({ label: item.label, href: item.href, type: 'Menu' as const })),
     // Principais cards do dashboard atual
     { label: 'Caixa atual', href: '/#card-caixa', type: 'Card' as const },
     { label: 'Mensalidades', href: '/#card-mensalidades', type: 'Card' as const },
@@ -277,7 +305,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
             <nav className="flex-1 px-5 pb-6">
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 mb-4">Navegação</div>
               <div className="flex flex-col gap-1.5">
-                {navItems.map((item) => {
+                {allowedNavItems.map((item) => {
                   const active = router.pathname === item.href;
                   return (
                     <Link
@@ -448,7 +476,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                     </button>
                   </div>
                   <nav className="flex flex-col gap-1.5 px-4 py-4 text-base">
-                    {navItems.map((item) => {
+                    {allowedNavItems.map((item) => {
                       const active = router.pathname === item.href;
                       return (
                         <Link
