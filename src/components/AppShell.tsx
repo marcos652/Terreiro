@@ -131,24 +131,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   const [mobileOpen, setMobileOpen] = useState(false);
   const [devtoolsOpen, setDevtoolsOpen] = useState(false);
 
-  const allowedNavItems = navItems.filter((item) => {
-    if (!profile) return false;
-    if (profile.role === 'MASTER') return true;
-    if (profile.role === 'EDITOR') {
-      return Array.isArray(profile.permissions) && profile.permissions.includes(item.key as string);
-    }
-    return true; // MEMBER vê o menu todo
-  });
-
-  useEffect(() => {
-    if (!user || !profile) return;
-    if (profile.role === 'EDITOR' && allowedNavItems.length > 0) {
-      const currentAllowed = allowedNavItems.some((item) => item.href === router.pathname);
-      if (!currentAllowed) {
-        router.replace(allowedNavItems[0].href);
-      }
-    }
-  }, [user, profile, allowedNavItems, router]);
+  const allowedNavItems = navItems; // visibilidade total; permissões só limitam edição nas páginas
 
   const handleSignOut = async () => {
     if (!auth) return;

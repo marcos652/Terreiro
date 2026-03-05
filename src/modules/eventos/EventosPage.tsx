@@ -12,6 +12,8 @@ export default function EventosPage() {
   const [form, setForm] = useState({ title: '', date: '', time: '', leader: '' });
   const { profile } = useAuth();
   const isMaster = profile?.role === 'MASTER';
+  const canEdit =
+    isMaster || (profile?.role === 'EDITOR' && profile.permissions?.includes('eventos'));
   const { addNotification } = useNotifications();
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function EventosPage() {
               placeholder="Título"
               value={form.title}
               onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
-              disabled={!isMaster}
+              disabled={!canEdit}
             />
             <div className="flex gap-2">
               <input
@@ -93,14 +95,14 @@ export default function EventosPage() {
                 placeholder="Data (dd/mm/aaaa)"
                 value={form.date}
                 onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
-                disabled={!isMaster}
+                disabled={!canEdit}
               />
               <input
                 className="w-32 rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
                 placeholder="Hora"
                 value={form.time}
                 onChange={(event) => setForm((prev) => ({ ...prev, time: event.target.value }))}
-                disabled={!isMaster}
+                disabled={!canEdit}
               />
             </div>
             <input
@@ -108,11 +110,11 @@ export default function EventosPage() {
               placeholder="Responsável"
               value={form.leader}
               onChange={(event) => setForm((prev) => ({ ...prev, leader: event.target.value }))}
-              disabled={!isMaster}
+              disabled={!canEdit}
             />
             <button
               onClick={handleAddEvent}
-              disabled={!isMaster}
+              disabled={!canEdit}
               className="w-full rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-500 disabled:opacity-60"
             >
               Criar evento
@@ -176,7 +178,7 @@ export default function EventosPage() {
                     <select
                       value={event.status}
                       onChange={(e) => handleStatusChange(event, e.target.value as EventItem['status'])}
-                      disabled={!isMaster}
+                      disabled={!canEdit}
                       className="rounded-lg border border-ink-200 bg-white px-3 py-1 text-xs font-semibold text-ink-700 hover:border-ink-300"
                     >
                       <option value="pendente">Pendente</option>
@@ -200,7 +202,7 @@ export default function EventosPage() {
                     </span>
                     <button
                       onClick={() => handleDeleteEvent(event)}
-                      disabled={!isMaster}
+                      disabled={!canEdit}
                       className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300 disabled:opacity-60"
                     >
                       Remover

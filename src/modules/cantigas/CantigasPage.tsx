@@ -17,7 +17,8 @@ export default function CantigasPage() {
   const [renameValue, setRenameValue] = useState('');
   const [renaming, setRenaming] = useState(false);
   const { profile } = useAuth();
-  const isMaster = profile?.role === 'MASTER';
+  const isMaster = profile?.role === "MASTER";
+  const canEdit = isMaster || (profile?.role === "EDITOR" && profile.permissions?.includes("cantigas"));
 
   useEffect(() => {
     let active = true;
@@ -186,7 +187,7 @@ export default function CantigasPage() {
               placeholder="Categoria (ex.: Cantiga de Exu)"
               value={form.category}
               onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}
-              disabled={!isMaster}
+              disabled={!canEdit}
             />
             <datalist id="cantiga-categories">
               {categories.map((category) => (
@@ -198,18 +199,18 @@ export default function CantigasPage() {
               placeholder="Titulo (opcional)"
               value={form.title}
               onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
-              disabled={!isMaster}
+              disabled={!canEdit}
             />
             <textarea
               className="min-h-[180px] rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
               placeholder="Digite a letra da cantiga..."
               value={form.lyrics}
               onChange={(event) => setForm((prev) => ({ ...prev, lyrics: event.target.value }))}
-              disabled={!isMaster}
+              disabled={!canEdit}
             />
             <button
               onClick={handleAdd}
-              disabled={!isMaster || saving || !form.category.trim() || !form.lyrics.trim()}
+              disabled={!canEdit || saving || !form.category.trim() || !form.lyrics.trim()}
               className="w-full rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-500 disabled:opacity-60"
             >
               {saving ? 'Salvando...' : 'Salvar cantiga'}
@@ -312,7 +313,7 @@ export default function CantigasPage() {
                         [modalCategory]: { title: event.target.value, lyrics: prev[modalCategory]?.lyrics ?? '' },
                       }))
                     }
-                    disabled={saving}
+                    disabled={!canEdit || saving}
                   />
                   <textarea
                     className="min-h-[140px] rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
@@ -324,7 +325,7 @@ export default function CantigasPage() {
                         [modalCategory]: { title: prev[modalCategory]?.title ?? '', lyrics: event.target.value },
                       }))
                     }
-                    disabled={saving}
+                    disabled={!canEdit || saving}
                   />
                   <button
                     onClick={() => handleAddInCategory(modalCategory)}
@@ -348,7 +349,7 @@ export default function CantigasPage() {
                     </div>
                     <button
                       onClick={() => handleRemove(item)}
-                      disabled={!isMaster}
+                      disabled={!canEdit}
                       className="text-xs font-semibold text-rose-500 hover:text-rose-600 disabled:opacity-60"
                     >
                       Remover

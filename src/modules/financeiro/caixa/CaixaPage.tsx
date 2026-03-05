@@ -17,6 +17,8 @@ export default function CaixaPage() {
   const { user, loading: authLoading, profile } = useAuth();
   const router = useRouter();
   const isMaster = profile?.role === 'MASTER';
+  const canEdit =
+    isMaster || (profile?.role === 'EDITOR' && profile.permissions?.includes('caixa'));
   const [transactions, setTransactions] = useState<CashTransaction[]>([]);
   const [filter, setFilter] = useState<'todos' | 'entrada' | 'saida'>('todos');
   const [form, setForm] = useState({ label: '', amount: '', type: 'entrada', method: 'Pix' });
@@ -90,7 +92,7 @@ export default function CaixaPage() {
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
           <button
             onClick={() => setForm((prev) => ({ ...prev, type: 'entrada' }))}
-            disabled={!isMaster}
+            disabled={!canEdit}
             className={`w-full rounded-xl border px-4 py-2 text-sm font-semibold sm:w-auto ${
               form.type === 'entrada'
                 ? 'border-emerald-500 bg-emerald-500 text-white'
@@ -101,7 +103,7 @@ export default function CaixaPage() {
           </button>
           <button
             onClick={() => setForm((prev) => ({ ...prev, type: 'saida' }))}
-            disabled={!isMaster}
+            disabled={!canEdit}
             className={`w-full rounded-xl border px-4 py-2 text-sm font-semibold sm:w-auto ${
               form.type === 'saida'
                 ? 'border-rose-500 bg-rose-500 text-white'
@@ -143,7 +145,7 @@ export default function CaixaPage() {
               placeholder="Descrição"
               value={form.label}
               onChange={(event) => setForm((prev) => ({ ...prev, label: event.target.value }))}
-              disabled={!isMaster}
+              disabled={!canEdit}
             />
             <input
               type="number"
@@ -151,14 +153,14 @@ export default function CaixaPage() {
               placeholder="Valor"
               value={form.amount}
               onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))}
-              disabled={!isMaster}
+              disabled={!canEdit}
             />
             <div className="flex gap-2">
               <select
                 className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
                 value={form.type}
                 onChange={(event) => setForm((prev) => ({ ...prev, type: event.target.value }))}
-                disabled={!isMaster}
+                disabled={!canEdit}
               >
                 <option value="entrada">Entrada</option>
                 <option value="saida">Saída</option>
@@ -167,7 +169,7 @@ export default function CaixaPage() {
                 className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
                 value={form.method}
                 onChange={(event) => setForm((prev) => ({ ...prev, method: event.target.value }))}
-                disabled={!isMaster}
+                disabled={!canEdit}
               >
                 <option>Pix</option>
                 <option>Dinheiro</option>
@@ -177,7 +179,7 @@ export default function CaixaPage() {
             <button
               onClick={handleAdd}
               className="w-full rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
-              disabled={!isMaster}
+              disabled={!canEdit}
             >
               Registrar movimento
             </button>

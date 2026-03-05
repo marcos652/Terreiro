@@ -34,6 +34,8 @@ export default function MensalidadesPage() {
   const [newMemberValue, setNewMemberValue] = useState('');
   const { profile } = useAuth();
   const isMaster = profile?.role === 'MASTER';
+  const canEdit =
+    isMaster || (profile?.role === 'EDITOR' && profile.permissions?.includes('mensalidades'));
   const monthlyGoalBase = 690;
   const monthlyGoal = Math.max(0, monthlyGoalBase - goalReduction);
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -347,7 +349,7 @@ export default function MensalidadesPage() {
                 placeholder="Ex.: 50"
                 value={goalReductionInput}
                 onChange={(e) => setGoalReductionInput(e.target.value)}
-                disabled={!isMaster}
+                disabled={!canEdit}
               />
               <button
                 onClick={handleApplyGoalReduction}
@@ -379,7 +381,7 @@ export default function MensalidadesPage() {
                 placeholder="Ex.: 50"
                 value={paidReductionInput}
                 onChange={(e) => setPaidReductionInput(e.target.value)}
-                disabled={!isMaster}
+                disabled={!canEdit}
               />
               <button
                 onClick={handleApplyPaidReduction}
@@ -413,7 +415,7 @@ export default function MensalidadesPage() {
                 placeholder="Ex.: 50"
                 value={debtReductionInput}
                 onChange={(e) => setDebtReductionInput(e.target.value)}
-                disabled={!isMaster}
+                disabled={!canEdit}
               />
               <button
                 onClick={handleApplyDebtReduction}
@@ -492,7 +494,7 @@ export default function MensalidadesPage() {
                   placeholder="Nome do membro"
                   value={newMemberName}
                   onChange={(event) => setNewMemberName(event.target.value)}
-                  disabled={!isMaster}
+                  disabled={!canEdit}
                 />
                 <input
                   type="number"
@@ -500,7 +502,7 @@ export default function MensalidadesPage() {
                   placeholder={`R$ ${formatBRL(defaultMemberValue)}`}
                   value={newMemberValue}
                   onChange={(event) => setNewMemberValue(event.target.value)}
-                  disabled={!isMaster}
+                  disabled={!canEdit}
                 />
                 <button
                   onClick={handleAddMember}
@@ -530,14 +532,14 @@ export default function MensalidadesPage() {
                     </span>
                     <button
                       onClick={() => handleToggle(member)}
-                      disabled={!isMaster}
+                      disabled={!canEdit}
                       className="rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-600 hover:border-ink-300 disabled:opacity-60"
                     >
                       Alternar
                     </button>
                     <button
                       onClick={() => handleRemoveMember(member)}
-                      disabled={!isMaster}
+                      disabled={!canEdit}
                       className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300 disabled:opacity-60"
                     >
                       Remover
