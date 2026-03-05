@@ -10,9 +10,7 @@ service cloud.firestore {
   function isMaster() {
     return isBootstrapMaster()
       || (request.auth != null
-        && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "MASTER"
-            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Master"
-            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "master"));
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches("(?i)^master$"));
   }
 
   match /databases/{database}/documents {
