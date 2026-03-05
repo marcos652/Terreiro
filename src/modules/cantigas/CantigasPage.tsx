@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
 import { useAuth } from '@contexts/AuthContext';
-import { addCantiga, CantigaItem, deleteCantiga, getCantigas } from '@services/cantigasService';
+import { addCantiga, CantigaItem, deleteCantiga, getCantigas, updateCantiga } from '@services/cantigasService';
 import { logService } from '@services/logService';
 import { auth } from '@services/firebase';
 
@@ -14,6 +14,8 @@ export default function CantigasPage() {
   const [modalCategory, setModalCategory] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  const [renameValue, setRenameValue] = useState('');
+  const [renaming, setRenaming] = useState(false);
   const { profile } = useAuth();
   const isMaster = profile?.role === 'MASTER';
 
@@ -144,6 +146,26 @@ export default function CantigasPage() {
     }
   };
 
+  const handleRenameCategory = async (oldName: string) => {
+    const newName = renameValue.trim();
+    if (!newName || newName === oldName) return;
+    setRenaming(true);
+    try {
+      const toUpdate = cantigas.filter((item) => item.category === oldName && item.id);
+      await Promise.all(
+        toUpdate.map((item) => updateCantiga(item.id as string, { category: newName }, profile?.email))
+      );
+      setCantigas((prev) => prev.map((item) => (item.category === oldName ? { ...item, category: newName } : item)));
+      setModalCategory(newName);
+      setRenameValue('');
+    } catch (error) {
+      console.error('Erro ao renomear pasta', error);
+      setErrorMsg('Não foi possível renomear a pasta. Verifique permissões.');
+    } finally {
+      setRenaming(false);
+    }
+  };
+
   return (
     <AppShell
       title="Cantigas"
@@ -255,6 +277,27 @@ export default function CantigasPage() {
                 Fechar
               </button>
             </div>
+            {isMaster && (
+              <div className="mt-3 flex flex-col gap-2 rounded-xl border border-ink-100 bg-ink-50/70 p-3">
+                <div className="text-[11px] uppercase tracking-[0.2em] text-ink-400">Renomear pasta</div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
+                    placeholder="Novo nome do culto/pasta"
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    disabled={renaming}
+                  />
+                  <button
+                    onClick={() => handleRenameCategory(modalCategory)}
+                    disabled={renaming || !renameValue.trim()}
+                    className="w-full rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60 sm:w-auto"
+                  >
+                    {renaming ? 'Renomeando...' : 'Salvar nome'}
+                  </button>
+                </div>
+              </div>
+            )}
             {isMaster && (
               <div className="mt-4 rounded-xl border border-ink-100 bg-ink-50/70 p-4">
                 <div className="text-[11px] uppercase tracking-[0.2em] text-ink-400">Adicionar cantiga</div>

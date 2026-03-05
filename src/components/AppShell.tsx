@@ -175,14 +175,6 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
     };
   }, []);
 
-  if (authLoading || (!user && typeof window !== 'undefined')) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-sand-50 text-ink-500">
-        Carregando...
-      </div>
-    );
-  }
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const savedTheme = window.localStorage.getItem('theme-mode');
@@ -247,6 +239,14 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
     day: '2-digit',
     month: 'short',
   }).format(new Date());
+
+  if (authLoading || (!user && typeof window !== 'undefined')) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-sand-50 text-ink-500">
+        Carregando...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-sand-50 text-ink-900 overflow-x-hidden">
