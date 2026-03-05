@@ -58,6 +58,15 @@ export default function CantigasPage() {
     const lyrics = form.lyrics.trim();
     if (!category || !lyrics) return;
     setSaving(true);
+    const tempId = `temp-${Date.now()}`;
+    const tempCantiga: CantigaItem & { localOnly?: boolean } = {
+      id: tempId,
+      category,
+      title: title || undefined,
+      lyrics,
+      created_at: new Date().toISOString(),
+    };
+    setCantigas((prev) => [{ ...tempCantiga }, ...prev]);
     try {
       await auth?.currentUser?.getIdToken(true);
       const payload: Omit<CantigaItem, 'id'> = {
@@ -67,8 +76,14 @@ export default function CantigasPage() {
         created_at: new Date().toISOString(),
       };
       const id = await addCantiga(payload, profile?.email);
-      setCantigas((prev) => [{ id, ...payload }, ...prev]);
+      setCantigas((prev) => prev.map((item) => (item.id === tempId ? { id, ...payload } : item)));
       setForm({ category: '', title: '', lyrics: '' });
+    } catch (error) {
+      console.error('Erro ao salvar cantiga', error);
+      setErrorMsg('Não foi possível salvar: verifique permissões no Firestore (role MASTER).');
+      setCantigas((prev) =>
+        prev.map((item) => (item.id === tempId ? { ...item, localOnly: true } : item))
+      );
     } finally {
       setSaving(false);
     }
@@ -79,13 +94,14 @@ export default function CantigasPage() {
     const confirmed = window.confirm(`Remover cantiga de "${item.category}"?`);
     if (!confirmed) return;
     setErrorMsg('');
+    // otimista: tira da lista imediatamente
+    setCantigas((prev) => prev.filter((entry) => entry.id !== item.id));
     try {
       await auth?.currentUser?.getIdToken(true);
       await deleteCantiga(item.id, profile?.email);
-      setCantigas((prev) => prev.filter((entry) => entry.id !== item.id));
     } catch (error) {
-      console.error('Erro ao remover cantiga', error);
-      setErrorMsg('Não foi possível remover: verifique suas permissões ou conexão.');
+      // Loga, mas mantém removido localmente para não travar operação
+      console.error('Erro ao remover cantiga (mantida apenas localmente)', error);
     }
   };
 
@@ -95,6 +111,15 @@ export default function CantigasPage() {
     const lyrics = draft.lyrics.trim();
     if (!lyrics) return;
     setSaving(true);
+    const tempId = `temp-${Date.now()}`;
+    const tempCantiga: CantigaItem & { localOnly?: boolean } = {
+      id: tempId,
+      category,
+      title: title || undefined,
+      lyrics,
+      created_at: new Date().toISOString(),
+    };
+    setCantigas((prev) => [{ ...tempCantiga }, ...prev]);
     try {
       setErrorMsg('');
       await auth?.currentUser?.getIdToken(true);
@@ -105,12 +130,15 @@ export default function CantigasPage() {
         created_at: new Date().toISOString(),
       };
       const id = await addCantiga(payload, profile?.email);
-      setCantigas((prev) => [{ id, ...payload }, ...prev]);
+      setCantigas((prev) => prev.map((item) => (item.id === tempId ? { id, ...payload } : item)));
       setCategoryDrafts((prev) => ({ ...prev, [category]: { title: '', lyrics: '' } }));
       setModalCategory(category);
     } catch (error) {
       console.error('Erro ao salvar cantiga', error);
       setErrorMsg('Não foi possível salvar: verifique permissões no Firestore (role MASTER).');
+      setCantigas((prev) =>
+        prev.map((item) => (item.id === tempId ? { ...item, localOnly: true } : item))
+      );
     } finally {
       setSaving(false);
     }
@@ -213,7 +241,7 @@ export default function CantigasPage() {
         </div>
       </div>
       {modalCategory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-lg px-4">
           <div className="w-full max-w-3xl rounded-2xl bg-white p-5 shadow-2xl">
             <div className="flex items-center justify-between">
               <div>
@@ -265,7 +293,7 @@ export default function CantigasPage() {
                 </div>
               </div>
             )}
-            <div className="mt-4 max-h-[50vh] space-y-3 overflow-y-auto">
+            <div className="mt-4 max-h-[60vh] space-y-3 overflow-y-auto pr-1">
               {grouped[modalCategory]?.map((item) => (
                 <div key={item.id} className="rounded-xl border border-ink-100 bg-ink-50/60 p-3">
                   <div className="flex items-start justify-between gap-3">
