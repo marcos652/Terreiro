@@ -3,6 +3,7 @@ import { Timestamp, collection, getDocs, orderBy, query, deleteDoc } from 'fireb
 import AppShell from '@components/AppShell';
 import { db } from '@services/firebase';
 import { useAuth } from '@contexts/AuthContext';
+import { useAuth } from '@contexts/AuthContext';
 
 type LogItem = {
   id: string;
@@ -17,7 +18,9 @@ export default function LogsPage() {
   const [error, setError] = useState('');
   const [clearing, setClearing] = useState(false);
   const { profile } = useAuth();
-  const isMaster = profile?.role === 'MASTER';
+  const canManageLogs =
+    profile?.role === 'MASTER' ||
+    (profile?.role === 'EDITOR' && profile.permissions?.includes('logs'));
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -53,7 +56,7 @@ export default function LogsPage() {
           <div className="text-sm font-semibold text-ink-800">Histórico de auditoria</div>
           <button
             onClick={async () => {
-              if (!isMaster) return;
+              if (!canManageLogs) return;
               setClearing(true);
               setError('');
               try {
@@ -66,7 +69,7 @@ export default function LogsPage() {
                 setClearing(false);
               }
             }}
-            disabled={!isMaster || clearing || logs.length === 0}
+            disabled={!canManageLogs || clearing || logs.length === 0}
             className="rounded-xl border border-ink-200 bg-white px-4 py-2 text-xs font-semibold text-ink-700 shadow-sm hover:border-ink-300 disabled:opacity-60"
           >
             {clearing ? 'Limpando...' : 'Limpar logs'}
