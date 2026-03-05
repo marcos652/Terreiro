@@ -28,7 +28,9 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      const credential = await signInWithEmailAndPassword(auth, email, password);
+      const normalizedEmail = email.trim().toLowerCase();
+      const normalizedPassword = password.trim();
+      const credential = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword);
       const uid = credential.user.uid;
       const userDoc = await getUserById(uid);
       if (!userDoc || userDoc.status !== 'APROVADO') {
@@ -39,7 +41,24 @@ export default function LoginPage() {
       }
       router.push('/');
     } catch (err: any) {
-      setError('Usuário ou senha inválidos.');
+      // Tenta enviar reset de senha quando as credenciais estão incorretas
+      const code = err?.code || '';
+      const isCredError =
+        code === 'auth/invalid-credential' ||
+        code === 'auth/wrong-password' ||
+        code === 'auth/user-not-found' ||
+        code === 'auth/invalid-email';
+      if (isCredError && auth && email) {
+        try {
+          await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+          setInfo('Senha inválida. Enviamos um e-mail para redefinir o acesso.');
+          setPassword('');
+        } catch (resetErr) {
+          setError('Usuário ou senha inválidos.');
+        }
+      } else {
+        setError('Usuário ou senha inválidos.');
+      }
     } finally {
       setLoading(false);
     }

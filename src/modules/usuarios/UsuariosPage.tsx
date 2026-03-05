@@ -146,21 +146,27 @@ export default function UsuariosPage() {
     setUpdatingId('new');
     try {
       // Cria no Firebase Auth para habilitar login
+      const normalizedEmail = newUser.email.trim().toLowerCase();
+      const normalizedPassword = newUser.password.trim();
       const cred = await createUserWithEmailAndPassword(
         secondaryAuth || auth,
-        newUser.email,
-        newUser.password
+        normalizedEmail,
+        normalizedPassword
       );
       const uid = cred.user.uid;
       const payload: Omit<User, 'id'> = {
         name: newUser.name,
-        email: newUser.email,
+        email: normalizedEmail,
         role: newUser.role,
         status: 'APROVADO',
         created_at: new Date().toISOString(),
         permissions: newUser.role === 'EDITOR' ? menuPermissions.map((m) => m.key) : undefined,
       };
       await upsertUserById(uid, payload, profile?.email);
+      // desconecta app secundária para não interferir na sessão atual
+      if (secondaryAuth) {
+        await secondaryAuth.signOut().catch(() => {});
+      }
       setUsers((prev) => [{ id: uid, ...payload }, ...prev]);
       setNewUser({ name: '', email: '', role: 'MEMBER', password: '' });
     } catch (error) {
