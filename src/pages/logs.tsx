@@ -3,7 +3,6 @@ import { Timestamp, collection, getDocs, orderBy, query, deleteDoc } from 'fireb
 import AppShell from '@components/AppShell';
 import { db } from '@services/firebase';
 import { useAuth } from '@contexts/AuthContext';
-import { useAuth } from '@contexts/AuthContext';
 
 type LogItem = {
   id: string;
@@ -11,7 +10,6 @@ type LogItem = {
   userEmail?: string;
   timestamp?: Timestamp;
 };
-
 export default function LogsPage() {
   const [logs, setLogs] = useState<LogItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +19,6 @@ export default function LogsPage() {
   const canManageLogs =
     profile?.role === 'MASTER' ||
     (profile?.role === 'EDITOR' && profile.permissions?.includes('logs'));
-
   useEffect(() => {
     const fetchLogs = async () => {
       setLoading(true);
@@ -37,10 +34,8 @@ export default function LogsPage() {
         setLoading(false);
       }
     };
-
     fetchLogs();
   }, []);
-
   const formatDate = (ts?: Timestamp) => {
     try {
       return ts ? ts.toDate().toLocaleString('pt-BR') : '—';
@@ -48,7 +43,6 @@ export default function LogsPage() {
       return '—';
     }
   };
-
   return (
     <AppShell title="Logs de Auditoria">
       <div className="rounded-2xl bg-white p-6 shadow-floating">
