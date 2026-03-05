@@ -17,8 +17,9 @@ export default function CantigasPage() {
   const [renameValue, setRenameValue] = useState('');
   const [renaming, setRenaming] = useState(false);
   const { profile } = useAuth();
-  const isMaster = profile?.role?.toUpperCase() === "MASTER";
-  const canEdit = isMaster || (profile?.role === "EDITOR" && profile.permissions?.includes("cantigas"));
+  const normalizedRole = (profile?.role || "").trim().toUpperCase();
+  const isMaster = normalizedRole === "MASTER";
+  const canEdit = isMaster || (normalizedRole === "EDITOR" && profile?.permissions?.includes("cantigas"));
 
   useEffect(() => {
     let active = true;

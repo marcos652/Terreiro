@@ -31,7 +31,7 @@ export default function EstoquePage() {
   const [clearingAll, setClearingAll] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { profile } = useAuth();
-  const isMaster = profile?.role?.toUpperCase() === 'MASTER';
+  const isMaster = (profile?.role || '').trim().toUpperCase() === 'MASTER';
 
   useEffect(() => {
     let active = true;

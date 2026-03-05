@@ -32,7 +32,8 @@ export default function UsuariosPage() {
   const [normalizedRoles, setNormalizedRoles] = useState(false);
   const { profile, user } = useAuth();
   const BOOTSTRAP_UID = 'rpdLNx3X4CZhFvB6O9bvXbFA72y1';
-  const isMaster = profile?.role?.toUpperCase() === 'MASTER';
+  const normalizedRole = (profile?.role || '').trim().toUpperCase();
+  const isMaster = normalizedRole === 'MASTER';
   const isBootstrapMaster = user?.uid === BOOTSTRAP_UID;
   const canAdmin = isMaster || isBootstrapMaster;
   // Auth secundÃ¡rio para criar contas sem deslogar o admin
@@ -82,7 +83,7 @@ export default function UsuariosPage() {
     if (!user.id) return;
     setUpdatingId(user.id);
     try {
-      const normalizedRole = (nextRole || '').toUpperCase() as User['role'];
+      const normalizedRole = (nextRole || '').trim().toUpperCase() as User['role'];
       await updateUser(user.id, { role: normalizedRole });
       setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, role: normalizedRole } : item)));
     } finally {
@@ -162,7 +163,7 @@ export default function UsuariosPage() {
       const payload: Omit<User, 'id'> = {
         name: newUser.name,
         email: normalizedEmail,
-        role: (newUser.role || 'MEMBER').toUpperCase() as User['role'],
+        role: (newUser.role || 'MEMBER').trim().toUpperCase() as User['role'],
         status: 'APROVADO',
         created_at: new Date().toISOString(),
         permissions: newUser.role === 'EDITOR' ? menuPermissions.map((m) => m.key) : undefined,

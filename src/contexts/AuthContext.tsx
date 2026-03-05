@@ -34,7 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data = await getUserById(user.uid);
         // normaliza role para evitar case mismatch e cria fallback para bootstrap master
         if (data) {
-          const normalized: AppUser = { ...data, role: (data.role || '').toUpperCase() as AppUser['role'] };
+          const normalizedRole = (data.role || '').trim().toUpperCase() as AppUser['role'];
+          const normalized: AppUser = { ...data, role: normalizedRole };
           setProfile(normalized);
         } else if (user.uid === BOOTSTRAP_UID) {
           // garante que o master de bootstrap tenha perfil mesmo sem documento

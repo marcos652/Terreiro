@@ -10,12 +10,12 @@ service cloud.firestore {
   function isMaster() {
     return isBootstrapMaster()
       || (request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches("(?i)^master$"));
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches("(?i)^\\s*master\\s*$"));
   }
 
   function isEditor() {
     return request.auth != null
-      && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches("(?i)^editor$");
+      && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches("(?i)^\\s*editor\\s*$");
   }
 
   match /databases/{database}/documents {

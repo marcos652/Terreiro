@@ -16,9 +16,10 @@ export default function CaixaPage() {
     new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
   const { user, loading: authLoading, profile } = useAuth();
   const router = useRouter();
-  const isMaster = profile?.role?.toUpperCase() === 'MASTER';
+  const normalizedRole = (profile?.role || '').trim().toUpperCase();
+  const isMaster = normalizedRole === 'MASTER';
   const canEdit =
-    isMaster || (profile?.role === 'EDITOR' && profile.permissions?.includes('caixa'));
+    isMaster || (normalizedRole === 'EDITOR' && profile?.permissions?.includes('caixa'));
   const [transactions, setTransactions] = useState<CashTransaction[]>([]);
   const [filter, setFilter] = useState<'todos' | 'entrada' | 'saida'>('todos');
   const [form, setForm] = useState({ label: '', amount: '', type: 'entrada', method: 'Pix' });

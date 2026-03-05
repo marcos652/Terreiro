@@ -11,9 +11,10 @@ export default function EventosPage() {
   const [filter, setFilter] = useState<'todos' | 'confirmado' | 'pendente' | 'cancelado'>('todos');
   const [form, setForm] = useState({ title: '', date: '', time: '', leader: '' });
   const { profile } = useAuth();
-  const isMaster = profile?.role?.toUpperCase() === 'MASTER';
+  const normalizedRole = (profile?.role || '').trim().toUpperCase();
+  const isMaster = normalizedRole === 'MASTER';
   const canEdit =
-    isMaster || (profile?.role === 'EDITOR' && profile.permissions?.includes('eventos'));
+    isMaster || (normalizedRole === 'EDITOR' && profile?.permissions?.includes('eventos'));
   const { addNotification } = useNotifications();
 
   useEffect(() => {

@@ -33,9 +33,10 @@ export default function MensalidadesPage() {
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberValue, setNewMemberValue] = useState('');
   const { profile } = useAuth();
-  const isMaster = profile?.role?.toUpperCase() === 'MASTER';
+  const normalizedRole = (profile?.role || '').trim().toUpperCase();
+  const isMaster = normalizedRole === 'MASTER';
   const canEdit =
-    isMaster || (profile?.role === 'EDITOR' && profile.permissions?.includes('mensalidades'));
+    isMaster || (normalizedRole === 'EDITOR' && profile?.permissions?.includes('mensalidades'));
   const monthlyGoalBase = 690;
   const monthlyGoal = Math.max(0, monthlyGoalBase - goalReduction);
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
