@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { auth, firebaseConfigMissing } from '@services/firebase';
+import { auth, firebaseConfig, firebaseConfigMissing } from '@services/firebase';
 import { getUserById, upsertUser } from '@services/userService';
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
@@ -10,7 +10,7 @@ import { getAuth } from 'firebase/auth';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [mode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -32,6 +32,44 @@ export default function LoginPage() {
       }
       const normalizedEmail = email.trim().toLowerCase();
       const normalizedPassword = password.trim();
+
+      if (mode === 'register') {
+        const secondaryAuth =
+          typeof window === 'undefined'
+            ? null
+            : getAuth(
+                getApps().find((a) => a.name === 'login-helper') ??
+                  initializeApp(firebaseConfig, 'login-helper')
+              );
+        if (!secondaryAuth) {
+          setError('Não foi possível iniciar o Firebase para criar usuário.');
+          setLoading(false);
+          return;
+        }
+        try {
+          const cred = await createUserWithEmailAndPassword(secondaryAuth, normalizedEmail, normalizedPassword);
+          const uid = cred.user.uid;
+          await upsertUser(uid, {
+            name: normalizedEmail.split('@')[0],
+            email: normalizedEmail,
+            role: 'MEMBER',
+            status: 'PENDENTE',
+            created_at: new Date().toISOString(),
+          });
+          await secondaryAuth.signOut().catch(() => {});
+          await signOut(auth).catch(() => {});
+          setInfo('Conta criada. Aguarde aprovação do master para acessar.');
+          setPassword('');
+          setMode('login');
+          setLoading(false);
+          return;
+        } catch (err) {
+          setError('Não foi possível criar a conta. Verifique o e-mail ou tente outra senha.');
+          setLoading(false);
+          return;
+        }
+      }
+
       let credential;
       try {
         credential = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword);
@@ -39,40 +77,12 @@ export default function LoginPage() {
         const code = err?.code || '';
         const isNotFound = code === 'auth/user-not-found' || code === 'auth/invalid-credential';
         if (isNotFound) {
-          // Tenta criar a conta se não existir no Auth
-          const secondaryAuth =
-            typeof window === 'undefined'
-              ? null
-              : getAuth(
-                  getApps().find((a) => a.name === 'login-helper') ??
-                    initializeApp(
-                      {
-                        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-                        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-                        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-                      },
-                      'login-helper'
-                    )
-                );
-          if (!secondaryAuth) throw err;
-          const created = await createUserWithEmailAndPassword(
-            secondaryAuth,
-            normalizedEmail,
-            normalizedPassword
-          );
-          // Cria/atualiza doc do usuário como aprovado e member
-          await upsertUser(created.user.uid, {
-            name: normalizedEmail.split('@')[0],
-            email: normalizedEmail,
-            role: 'MEMBER',
-            status: 'APROVADO',
-            created_at: new Date().toISOString(),
-          });
-          // tenta logar de novo na auth principal
-          credential = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword);
+          setError('Usuário não encontrado ou senha inválida.');
         } else {
-          throw err;
+          setError('Usuário ou senha inválidos.');
         }
+        setLoading(false);
+        return;
       }
 
       const uid = credential.user.uid;
@@ -96,24 +106,7 @@ export default function LoginPage() {
       }
       router.push('/');
     } catch (err: any) {
-      // Tenta enviar reset de senha quando as credenciais estão incorretas
-      const code = err?.code || '';
-      const isCredError =
-        code === 'auth/invalid-credential' ||
-        code === 'auth/wrong-password' ||
-        code === 'auth/user-not-found' ||
-        code === 'auth/invalid-email';
-      if (isCredError && auth && email) {
-        try {
-          await sendPasswordResetEmail(auth, email.trim().toLowerCase());
-          setInfo('Senha inválida. Enviamos um e-mail para redefinir o acesso.');
-          setPassword('');
-        } catch (resetErr) {
-          setError('Usuário ou senha inválidos.');
-        }
-      } else {
-        setError('Usuário ou senha inválidos.');
-      }
+      setError('Usuário ou senha inválidos.');
     } finally {
       setLoading(false);
     }
@@ -184,19 +177,36 @@ export default function LoginPage() {
             >
               <div className="mb-6">
                 <div className="text-xs uppercase tracking-[0.3em] text-ink-300">Acesso</div>
-                <h2 className="font-display text-4xl font-semibold text-ink-900">Entrar no painel</h2>
-                <p className="text-lg text-ink-500">Use seu e-mail e senha cadastrados.</p>
+                <h2 className="font-display text-4xl font-semibold text-ink-900">
+                  {mode === 'register' ? 'Criar conta' : 'Entrar no painel'}
+                </h2>
+                <p className="text-lg text-ink-500">
+                  {mode === 'register'
+                    ? 'Cadastre um acesso. O master precisará aprovar.'
+                    : 'Use seu e-mail e senha cadastrados.'}
+                </p>
               </div>
               <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-2 text-xs font-semibold text-ink-400">
-                  <button
-                    type="button"
-                    className="rounded-full px-4 py-1 bg-ink-900 text-white cursor-default"
-                    disabled
-                  >
-                    Entrar
-                  </button>
-                </div>
+              <div className="flex items-center gap-2 text-xs font-semibold text-ink-400">
+                <button
+                  type="button"
+                  onClick={() => setMode('login')}
+                  className={`rounded-full px-4 py-1 ${
+                    mode === 'login' ? 'bg-ink-900 text-white' : 'bg-ink-100'
+                  }`}
+                >
+                  Entrar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('register')}
+                  className={`rounded-full px-4 py-1 ${
+                    mode === 'register' ? 'bg-ink-900 text-white' : 'bg-ink-100'
+                  }`}
+                >
+                  Criar conta
+                </button>
+              </div>
                 <label className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">
                   E-mail
                 </label>
