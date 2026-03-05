@@ -76,7 +76,18 @@ export default function LoginPage() {
       }
 
       const uid = credential.user.uid;
-      const userDoc = await getUserById(uid);
+      let userDoc = await getUserById(uid);
+      if (!userDoc) {
+        // cria ficha básica aprovada se não existir
+        await upsertUser(uid, {
+          name: normalizedEmail.split('@')[0],
+          email: normalizedEmail,
+          role: 'MEMBER',
+          status: 'APROVADO',
+          created_at: new Date().toISOString(),
+        });
+        userDoc = await getUserById(uid);
+      }
       if (!userDoc || userDoc.status !== 'APROVADO') {
         setError('Seu acesso está em validação pelo administrador.');
         await signOut(auth);
