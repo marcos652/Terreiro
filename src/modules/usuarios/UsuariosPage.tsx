@@ -78,9 +78,11 @@ export default function UsuariosPage() {
   const handleApprove = async (user: User) => {
     if (!user.id) return;
     setUpdatingId(user.id);
+    setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, status: 'APROVADO' } : item)));
     try {
       await updateUser(user.id, { status: 'APROVADO' });
-      setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, status: 'APROVADO' } : item)));
+    } catch (error) {
+      console.error('Erro ao aprovar usuário (mantido aprovado localmente)', error);
     } finally {
       setUpdatingId(null);
     }
