@@ -8,8 +8,9 @@ export interface User {
   name: string;
   email: string;
   password?: string; // hash
-  role: 'MASTER' | 'MEMBER';
+  role: 'MASTER' | 'EDITOR' | 'MEMBER';
   status: 'PENDENTE' | 'APROVADO' | 'BLOQUEADO' | 'DESATIVADO';
+  permissions?: string[]; // slugs das abas liberadas quando role = EDITOR
   created_at: string;
 }
 
