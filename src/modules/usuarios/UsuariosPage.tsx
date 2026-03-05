@@ -15,7 +15,7 @@ const menuPermissions = [
   { key: 'cantigas', label: 'Cantigas' },
   { key: 'youtube', label: 'Youtube Macumba' },
   { key: 'estoque', label: 'Estoque' },
-  { key: 'usuarios', label: 'Usuários' },
+  { key: 'usuarios', label: 'UsuÃ¡rios' },
   { key: 'logs', label: 'Logs' },
 ];
 
@@ -29,9 +29,13 @@ export default function UsuariosPage() {
   const [detailUser, setDetailUser] = useState<User | null>(null);
   const [permDraft, setPermDraft] = useState<string[]>([]);
   const [savingDetail, setSavingDetail] = useState(false);
-  const { profile } = useAuth();
+  const [normalizedRoles, setNormalizedRoles] = useState(false);
+  const { profile, user } = useAuth();
+  const BOOTSTRAP_UID = 'rpdLNx3X4CZhFvB6O9bvXbFA72y1';
   const isMaster = profile?.role?.toUpperCase() === 'MASTER';
-  // Auth secundário para criar contas sem deslogar o admin
+  const isBootstrapMaster = user?.uid === BOOTSTRAP_UID;
+  const canAdmin = isMaster || isBootstrapMaster;
+  // Auth secundÃ¡rio para criar contas sem deslogar o admin
   const secondaryAuth =
     typeof window === 'undefined'
       ? null
@@ -78,8 +82,9 @@ export default function UsuariosPage() {
     if (!user.id) return;
     setUpdatingId(user.id);
     try {
-      await updateUser(user.id, { role: nextRole });
-      setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, role: nextRole } : item)));
+      const normalizedRole = (nextRole || '').toUpperCase() as User['role'];
+      await updateUser(user.id, { role: normalizedRole });
+      setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, role: normalizedRole } : item)));
     } finally {
       setUpdatingId(null);
     }
@@ -92,7 +97,7 @@ export default function UsuariosPage() {
     try {
       await updateUser(user.id, { status: 'APROVADO' });
     } catch (error) {
-      console.error('Erro ao aprovar usuário (mantido aprovado localmente)', error);
+      console.error('Erro ao aprovar usuÃ¡rio (mantido aprovado localmente)', error);
     } finally {
       setUpdatingId(null);
     }
@@ -105,7 +110,7 @@ export default function UsuariosPage() {
     try {
       await updateUser(user.id, { status: 'BLOQUEADO' });
     } catch (error) {
-      console.error('Erro ao bloquear usuário (mantido estado local)', error);
+      console.error('Erro ao bloquear usuÃ¡rio (mantido estado local)', error);
     } finally {
       setUpdatingId(null);
     }
@@ -118,7 +123,7 @@ export default function UsuariosPage() {
     try {
       await updateUser(user.id, { status: 'DESATIVADO' });
     } catch (error) {
-      console.error('Erro ao desativar usuário (mantido estado local)', error);
+      console.error('Erro ao desativar usuÃ¡rio (mantido estado local)', error);
     } finally {
       setUpdatingId(null);
     }
@@ -128,14 +133,14 @@ export default function UsuariosPage() {
     if (!user.id) return;
     const confirmed = window.confirm(`Remover ${user.name}?`);
     if (!confirmed) return;
-    // Remoção otimista: tira da lista imediatamente
+    // RemoÃ§Ã£o otimista: tira da lista imediatamente
     setUpdatingId(user.id);
     setUsers((prev) => prev.filter((item) => item.id !== user.id));
     try {
       await deleteUser(user.id, profile?.email);
     } catch (error) {
-      console.error('Erro ao remover usuário no Firestore (mantido removido localmente)', error);
-      // mantemos a remoção local mesmo se o backend não permitir
+      console.error('Erro ao remover usuÃ¡rio no Firestore (mantido removido localmente)', error);
+      // mantemos a remoÃ§Ã£o local mesmo se o backend nÃ£o permitir
     } finally {
       setUpdatingId(null);
     }
@@ -157,21 +162,21 @@ export default function UsuariosPage() {
       const payload: Omit<User, 'id'> = {
         name: newUser.name,
         email: normalizedEmail,
-        role: newUser.role,
+        role: (newUser.role || 'MEMBER').toUpperCase() as User['role'],
         status: 'APROVADO',
         created_at: new Date().toISOString(),
         permissions: newUser.role === 'EDITOR' ? menuPermissions.map((m) => m.key) : undefined,
       };
       await upsertUserById(uid, payload, profile?.email);
-      // desconecta app secundária para não interferir na sessão atual
+      // desconecta app secundÃ¡ria para nÃ£o interferir na sessÃ£o atual
       if (secondaryAuth) {
         await secondaryAuth.signOut().catch(() => {});
       }
       setUsers((prev) => [{ id: uid, ...payload }, ...prev]);
       setNewUser({ name: '', email: '', role: 'MEMBER', password: '' });
     } catch (error) {
-      console.error('Erro ao criar usuário/auth', error);
-      alert('Não foi possível criar usuário. Verifique se o e-mail já existe ou as permissões.');
+      console.error('Erro ao Criar usuário/auth', error);
+      alert('NÃ£o foi possÃ­vel Criar usuário. Verifique se o e-mail jÃ¡ existe ou as permissÃµes.');
     } finally {
       setUpdatingId(null);
     }
@@ -199,6 +204,36 @@ export default function UsuariosPage() {
       setDetailUser(null);
     }
   };
+
+  const normalizeMasters = async () => {
+    if (!canAdmin) return;
+    setSavingDetail(true);
+    try {
+      const updates: User[] = [];
+      for (const u of users) {
+        const upper = (u.role || '').toUpperCase() as User['role'];
+        if (u.role !== upper) {
+          await updateUser(u.id!, { role: upper });
+          updates.push({ ...u, role: upper });
+        }
+      }
+      if (updates.length) {
+        setUsers((prev) =>
+          prev.map((u) => {
+            const changed = updates.find((x) => x.id === u.id);
+            return changed ? changed : u;
+          })
+        );
+      }
+    } finally {
+      setSavingDetail(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!canAdmin || normalizedRoles || users.length === 0) return;
+    normalizeMasters().finally(() => setNormalizedRoles(true));
+  }, [canAdmin, normalizedRoles, users]);
 
   const handleClearTeam = async () => {
     const confirmed = window.confirm('Tem certeza que deseja limpar as notificacoes da equipe?');
@@ -256,14 +291,14 @@ export default function UsuariosPage() {
                   placeholder="Nome"
                   value={newUser.name}
                   onChange={(e) => setNewUser((prev) => ({ ...prev, name: e.target.value }))}
-                  disabled={!isMaster || updatingId === 'new'}
+                      disabled={!canAdmin || updatingId === 'new'}
                 />
                 <input
                   className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
                   placeholder="E-mail"
                   value={newUser.email}
                   onChange={(e) => setNewUser((prev) => ({ ...prev, email: e.target.value }))}
-                  disabled={!isMaster || updatingId === 'new'}
+                      disabled={!canAdmin || updatingId === 'new'}
                 />
                 <input
                   className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
@@ -271,21 +306,21 @@ export default function UsuariosPage() {
                   type="password"
                   value={newUser.password}
                   onChange={(e) => setNewUser((prev) => ({ ...prev, password: e.target.value }))}
-                  disabled={!isMaster || updatingId === 'new'}
+                      disabled={!canAdmin || updatingId === 'new'}
                 />
                 <select
                   className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
                   value={newUser.role}
                   onChange={(e) => setNewUser((prev) => ({ ...prev, role: e.target.value as User['role'] }))}
-                  disabled={!isMaster || updatingId === 'new'}
+                  disabled={!canAdmin || updatingId === 'new'}
                 >
-                  <option value="MEMBER">Visualização</option>
-                  <option value="EDITOR">Editor (permissões por aba)</option>
+                  <option value="MEMBER">VisualizaÃ§Ã£o</option>
+                  <option value="EDITOR">Editor (permissÃµes por aba)</option>
                   <option value="MASTER">Master</option>
                 </select>
                 <button
                   onClick={handleCreateUser}
-                  disabled={!isMaster || updatingId === 'new' || !newUser.name.trim() || !newUser.email.trim()}
+                  disabled={!canAdmin || updatingId === 'new' || !newUser.name.trim() || !newUser.email.trim()}
                   className="w-full rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
                 >
                   {updatingId === 'new' ? 'Criando...' : 'Criar usuário'}
@@ -315,7 +350,7 @@ export default function UsuariosPage() {
                   <select
                     className="rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-700 hover:border-ink-300"
                     value={user.role}
-                    disabled={!isMaster || updatingId === user.id}
+                    disabled={!canAdmin || updatingId === user.id}
                     onChange={(event) => handleRoleChange(user, event.target.value as User['role'])}
                   >
                     <option value="MEMBER">Visualizacao</option>
@@ -341,21 +376,21 @@ export default function UsuariosPage() {
                   )}
                   <button
                     onClick={() => handleDeactivate(user)}
-                    disabled={!isMaster || updatingId === user.id}
+                    disabled={!canAdmin || updatingId === user.id}
                     className="rounded-lg border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-700 hover:border-amber-300 disabled:opacity-60"
                   >
                     Desativar
                   </button>
                   <button
                     onClick={() => handleBlock(user)}
-                    disabled={!isMaster || updatingId === user.id}
+                    disabled={!canAdmin || updatingId === user.id}
                     className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300 disabled:opacity-60"
                   >
                     Bloquear
                   </button>
                   <button
                     onClick={() => handleRemove(user)}
-                    disabled={!isMaster || updatingId === user.id}
+                    disabled={!canAdmin || updatingId === user.id}
                     className="rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-600 hover:border-ink-300 disabled:opacity-60"
                     >
                       Remover
@@ -364,9 +399,9 @@ export default function UsuariosPage() {
                   <button
                     onClick={() => openDetail(user)}
                     className="mt-2 w-full rounded-lg border border-ink-200 px-3 py-2 text-xs font-semibold text-ink-700 hover:border-ink-300"
-                    disabled={!isMaster}
+                    disabled={!canAdmin}
                   >
-                    Ficha cadastral / Permissões
+                    Ficha cadastral / PermissÃµes
                   </button>
                 </div>
               ))}
@@ -396,18 +431,18 @@ export default function UsuariosPage() {
             </div>
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-ink-100 bg-ink-50/70 p-4">
-                <div className="text-[11px] uppercase tracking-[0.2em] text-ink-400">Nível</div>
+                <div className="text-[11px] uppercase tracking-[0.2em] text-ink-400">NÃ­vel</div>
                 <div className="mt-2">
                   <span className="rounded-full bg-ink-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-ink-600">
                     {roleLabel(detailUser.role)}
                   </span>
                 </div>
                 <div className="mt-3 text-xs text-ink-500">
-                  Editor: permite granularidade por aba. Member: somente visualização. Master: total.
+                  Editor: permite granularidade por aba. Member: somente visualizaÃ§Ã£o. Master: total.
                 </div>
               </div>
               <div className="rounded-xl border border-ink-100 bg-ink-50/70 p-4">
-                <div className="text-[11px] uppercase tracking-[0.2em] text-ink-400">Permissões por aba</div>
+                <div className="text-[11px] uppercase tracking-[0.2em] text-ink-400">PermissÃµes por aba</div>
                 <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {menuPermissions.map((item) => (
                     <label
@@ -426,7 +461,7 @@ export default function UsuariosPage() {
                   ))}
                 </div>
                 <div className="mt-3 text-[11px] text-ink-500">
-                  Se o usuário for EDITOR, só verá/editará as abas ligadas aqui.
+                  Se o usuÃ¡rio for EDITOR, sÃ³ verÃ¡/editarÃ¡ as abas ligadas aqui.
                 </div>
               </div>
             </div>

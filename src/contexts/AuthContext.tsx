@@ -21,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
+    const BOOTSTRAP_UID = 'rpdLNx3X4CZhFvB6O9bvXbFA72y1';
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
@@ -31,7 +32,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       try {
         const data = await getUserById(user.uid);
-        setProfile(data);
+        // normaliza role para evitar case mismatch e cria fallback para bootstrap master
+        if (data) {
+          const normalized: AppUser = { ...data, role: (data.role || '').toUpperCase() as AppUser['role'] };
+          setProfile(normalized);
+        } else if (user.uid === BOOTSTRAP_UID) {
+          // garante que o master de bootstrap tenha perfil mesmo sem documento
+          const synthetic: AppUser = {
+            id: user.uid,
+            name: user.displayName || 'Bootstrap Master',
+            email: user.email || 'bootstrap@local',
+            role: 'MASTER',
+            status: 'APROVADO',
+            created_at: new Date().toISOString(),
+            permissions: undefined,
+          };
+          setProfile(synthetic);
+        } else {
+          setProfile(null);
+        }
       } finally {
         setLoading(false);
       }
