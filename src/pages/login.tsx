@@ -29,31 +29,54 @@ export default function LoginPage() {
 
   useEffect(() => {
     const parseDateTime = (event: EventItem) => {
-      // espera date em dd/mm/aaaa e time hh:mm
-      const [day, month, year] = (event.date || '').split('/').map(Number);
-      const [hour, minute] = (event.time || '').split(':').map(Number);
-      if (!day || !month || !year) return null;
-      return new Date(year, month - 1, day, hour || 0, minute || 0, 0);
+      const raw = (event.date || '').trim();
+      const timeRaw = (event.time || '').trim();
+
+      // Formato dd/mm/aaaa
+      if (raw.includes('/')) {
+        const [day, month, year] = raw.split('/').map(Number);
+        if (day && month && year) {
+          const [hour, minute] = timeRaw.split(':').map(Number);
+          return new Date(year, month - 1, day, hour || 0, minute || 0, 0);
+        }
+      }
+      // Formato yyyy-mm-dd
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        const [year, month, day] = raw.split('-').map(Number);
+        const [hour, minute] = timeRaw.split(':').map(Number);
+        return new Date(year, month - 1, day, hour || 0, minute || 0, 0);
+      }
+      // ISO em created_at como fallback
+      if (event.created_at) {
+        const d = new Date(event.created_at);
+        if (!Number.isNaN(d.getTime())) return d;
+      }
+      return null;
     };
 
     getEvents()
       .then((events) => {
         const candidates = events.filter((e) => e.status !== 'cancelado');
-        if (candidates.length === 0) {
-          setNextEvent(null);
-          return;
-        }
-        const withDate = candidates
-          .map((e) => ({ ...e, dateObj: parseDateTime(e) }))
-          .filter((e) => e.dateObj instanceof Date && !Number.isNaN(e.dateObj!.getTime())) as (EventItem & {
+        if (candidates.length === 0) return setNextEvent(null);
+
+        const withDate = candidates.map((e) => ({
+          ...e,
+          dateObj: parseDateTime(e),
+        }));
+
+        const valid = withDate.filter((e) => e.dateObj && !Number.isNaN(e.dateObj.getTime())) as (EventItem & {
           dateObj: Date;
         })[];
 
         const now = new Date();
-        const upcoming = withDate
+        const upcoming = valid
           .filter((e) => e.dateObj >= now)
           .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
-        const chosen = upcoming[0] || withDate.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime())[0];
+
+        const chosen = upcoming[0]
+          || valid.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime())[0]
+          || candidates[0];
+
         setNextEvent(chosen);
       })
       .catch(() => setNextEvent(null));
