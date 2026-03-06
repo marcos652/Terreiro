@@ -53,7 +53,7 @@ service cloud.firestore {
 
     // Eventos
     match /events/{docId} {
-      allow read: if request.auth != null;
+      allow read: if true;
       allow write: if hasPermission("eventos");
     }
 

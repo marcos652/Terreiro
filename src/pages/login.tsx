@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -7,6 +7,7 @@ import { auth, firebaseConfig, firebaseConfigMissing } from '@services/firebase'
 import { getUserById, upsertUser } from '@services/userService';
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getEvents, EventItem } from '@services/eventService';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -17,20 +18,46 @@ export default function LoginPage() {
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [nextEvent, setNextEvent] = useState<EventItem | null>(null);
   const router = useRouter();
-
-  const nextGira = {
-    titulo: 'Próxima gira',
-    data: 'Sábado • 22 de março • 19h',
-    tema: 'Gira de caboclos',
-    local: 'Estrada Vicinal - Avencas, Marília/SP • CEP 17532-000',
-  };
 
   const destaques = [
     { label: 'Financeiro', value: 'Caixa + Mensalidades', color: 'from-amber-400 to-orange-500' },
     { label: 'Agenda', value: 'Próximas giras e equipes', color: 'from-emerald-400 to-teal-500' },
     { label: 'Cantigas', value: 'Repertório e gravações', color: 'from-indigo-400 to-sky-500' },
   ];
+
+  useEffect(() => {
+    const parseDateTime = (event: EventItem) => {
+      // espera date em dd/mm/aaaa e time hh:mm
+      const [day, month, year] = (event.date || '').split('/').map(Number);
+      const [hour, minute] = (event.time || '').split(':').map(Number);
+      if (!day || !month || !year) return null;
+      return new Date(year, month - 1, day, hour || 0, minute || 0, 0);
+    };
+
+    getEvents()
+      .then((events) => {
+        const candidates = events.filter((e) => e.status !== 'cancelado');
+        if (candidates.length === 0) {
+          setNextEvent(null);
+          return;
+        }
+        const withDate = candidates
+          .map((e) => ({ ...e, dateObj: parseDateTime(e) }))
+          .filter((e) => e.dateObj instanceof Date && !Number.isNaN(e.dateObj!.getTime())) as (EventItem & {
+          dateObj: Date;
+        })[];
+
+        const now = new Date();
+        const upcoming = withDate
+          .filter((e) => e.dateObj >= now)
+          .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+        const chosen = upcoming[0] || withDate.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime())[0];
+        setNextEvent(chosen);
+      })
+      .catch(() => setNextEvent(null));
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,10 +221,14 @@ export default function LoginPage() {
               Seja bem-vindo, que os orixás te abençoem!
             </h1>
             <div className="flex flex-col gap-3 rounded-3xl bg-white/90 p-5 shadow-[0_30px_90px_-40px_rgba(15,23,42,0.6)] ring-1 ring-ink-100/80">
-              <div className="text-[11px] uppercase tracking-[0.28em] text-amber-500">{nextGira.titulo}</div>
-              <div className="text-xl font-semibold text-ink-900">{nextGira.data}</div>
-              <div className="text-sm text-ink-500">{nextGira.tema}</div>
-              <div className="text-xs text-ink-400">{nextGira.local}</div>
+              <div className="text-[11px] uppercase tracking-[0.28em] text-amber-500">Próxima gira</div>
+              <div className="text-xl font-semibold text-ink-900">
+                {nextEvent ? `${nextEvent.date} • ${nextEvent.time || 'horário a confirmar'}` : 'Sem data definida'}
+              </div>
+              <div className="text-sm text-ink-500">
+                {nextEvent ? (nextEvent.title || 'Evento') : 'Cadastre um evento em Eventos'}
+              </div>
+              <div className="text-xs text-ink-400">Estrada Vicinal - Avencas, Marília/SP • CEP 17532-000</div>
             </div>
               <div className="flex flex-wrap items-center gap-3 text-xs text-ink-400">
                 <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Seguro</span>
@@ -311,7 +342,7 @@ export default function LoginPage() {
                   Esqueci minha senha
                 </button>
                 <div className="mt-2 text-center text-xs text-ink-400">
-                  Precisa de acesso? Fale com a administra��o.
+                  Precisa de acesso? Fale com a administra??o.
                 </div>
               </div>
             </form>
@@ -325,8 +356,8 @@ export default function LoginPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs uppercase tracking-[0.3em] text-amber-500">Quem somos</div>
-                <div className="mt-1 text-2xl font-semibold text-ink-900">Templo de Umbanda Luz e F�</div>
-                <div className="text-sm text-ink-500">Mar�lia/SP � Estrada Vicinal - Avencas � CEP 17532-000</div>
+                <div className="mt-1 text-2xl font-semibold text-ink-900">Templo de Umbanda Luz e F?</div>
+                <div className="text-sm text-ink-500">Mar?lia/SP ? Estrada Vicinal - Avencas ? CEP 17532-000</div>
               </div>
               <button
                 onClick={() => setAboutOpen(false)}
@@ -336,8 +367,8 @@ export default function LoginPage() {
               </button>
             </div>
             <p className="mt-4 text-sm text-ink-600">
-              Somos uma casa dedicada � f�, caridade e organiza��o. Conduzimos giras semanais, desenvolvimento medi�nico e a��es sociais,
-              apoiados por um portal interno para finan�as, eventos, estoque e cantigas.
+              Somos uma casa dedicada ? f?, caridade e organiza??o. Conduzimos giras semanais, desenvolvimento medi?nico e a??es sociais,
+              apoiados por um portal interno para finan?as, eventos, estoque e cantigas.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
@@ -345,7 +376,7 @@ export default function LoginPage() {
                 className="rounded-2xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700"
                 onClick={() => setAboutOpen(false)}
               >
-                Ver p�gina completa
+                Ver p?gina completa
               </Link>
               <a
                 href="https://instagram.com/umbanda_luz_e_fe"
@@ -367,6 +398,9 @@ export default function LoginPage() {
     </div>
   );
 }
+
+
+
 
 
 
