@@ -26,6 +26,12 @@ export default function LoginPage() {
     local: 'Estrada Vicinal - Avencas, Marília/SP • CEP 17532-000',
   };
 
+  const destaques = [
+    { label: 'Financeiro', value: 'Caixa + Mensalidades', color: 'from-amber-400 to-orange-500' },
+    { label: 'Agenda', value: 'Próximas giras e equipes', color: 'from-emerald-400 to-teal-500' },
+    { label: 'Cantigas', value: 'Repertório e gravações', color: 'from-indigo-400 to-sky-500' },
+  ];
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -147,14 +153,14 @@ export default function LoginPage() {
       if (!auth) {
         const missing =
           firebaseConfigMissing.length > 0 ? ` (${firebaseConfigMissing.join(', ')})` : '';
-        setError(`ConfiguraÃ§Ã£o do Firebase nÃ£o encontrada.${missing}`);
+        setError(`Configuração do Firebase não encontrada.${missing}`);
         setLoading(false);
         return;
       }
       await sendPasswordResetEmail(auth, email);
-      setInfo('Enviamos um e-mail com o link de recuperaÃ§Ã£o.');
+      setInfo('Enviamos um e-mail com o link de recuperação.');
     } catch (err: any) {
-      setError('NÃ£o foi possÃ­vel enviar o e-mail de recuperaÃ§Ã£o.');
+      setError('Não foi possível enviar o e-mail de recuperação.');
     } finally {
       setLoading(false);
     }
@@ -171,18 +177,18 @@ export default function LoginPage() {
         <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 md:px-10 min-w-0">
           <div className="grid w-full min-w-0 gap-12 lg:grid-cols-[1.05fr_0.95fr]">
             <div className="flex flex-col justify-center gap-6">
-            <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.4em] text-ink-400">
-              <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-ink-100/60">
-                <Image
-                  src="/logo-templo.svg"
-                  alt="Templo de Umbanda Luz e Fé"
-                  fill
-                  sizes="56px"
-                  className="object-contain"
-                  priority
-                />
+              <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.4em] text-ink-400">
+                <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-ink-100/60">
+                  <Image
+                    src="/logo-templo.svg"
+                    alt="Templo de Umbanda Luz e Fé"
+                    fill
+                    sizes="56px"
+                    className="object-contain"
+                    priority
+                  />
                 </div>
-                <span>Templo Luz e FÃ©</span>
+                <span>Templo Luz e Fé</span>
               </div>
             <h1 className="font-display text-5xl font-semibold leading-tight text-ink-900 md:text-6xl">
               Seja bem-vindo, que os orixás te abençoem!
@@ -204,14 +210,19 @@ export default function LoginPage() {
                 >
                   Sobre o terreiro
                 </button>
-                <span className="inline-flex items-center gap-2 rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">
+                <a
+                  href="https://instagram.com/umbanda_luz_e_fe"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-ink-200/70 bg-white/70 px-3 py-1 hover:border-ink-300"
+                >
                   <svg viewBox="0 0 24 24" className="h-4 w-4 text-ink-500" fill="none" stroke="currentColor" strokeWidth="1.6">
                     <rect x="4" y="4" width="16" height="16" rx="4" />
-                  <circle cx="12" cy="12" r="4" />
-                  <circle cx="17.5" cy="6.5" r="1" />
-                </svg>
-                <span className="font-semibold text-ink-700">@umbanda_luz_e_fe</span>
-              </span>
+                    <circle cx="12" cy="12" r="4" />
+                    <circle cx="17.5" cy="6.5" r="1" />
+                  </svg>
+                  <span className="font-semibold text-ink-700">@umbanda_luz_e_fe</span>
+                </a>
             </div>
             </div>
 
@@ -226,7 +237,7 @@ export default function LoginPage() {
                 </h2>
                 <p className="text-lg text-ink-500">
                   {mode === 'register'
-                    ? 'Cadastre um acesso. Se for editor ou master, peça para atribuírem seu papel.'
+                    ? 'Cadastre um acesso. Se for editor ou master, peça para atribuirem seu papel.'
                     : 'Use seu e-mail e senha cadastrados.'}
                 </p>
               </div>
@@ -300,7 +311,7 @@ export default function LoginPage() {
                   Esqueci minha senha
                 </button>
                 <div className="mt-2 text-center text-xs text-ink-400">
-                  Precisa de acesso? Fale com a administração.
+                  Precisa de acesso? Fale com a administra��o.
                 </div>
               </div>
             </form>
@@ -314,8 +325,8 @@ export default function LoginPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs uppercase tracking-[0.3em] text-amber-500">Quem somos</div>
-                <div className="mt-1 text-2xl font-semibold text-ink-900">Templo de Umbanda Luz e Fé</div>
-                <div className="text-sm text-ink-500">Marília/SP • Estrada Vicinal - Avencas • CEP 17532-000</div>
+                <div className="mt-1 text-2xl font-semibold text-ink-900">Templo de Umbanda Luz e F�</div>
+                <div className="text-sm text-ink-500">Mar�lia/SP � Estrada Vicinal - Avencas � CEP 17532-000</div>
               </div>
               <button
                 onClick={() => setAboutOpen(false)}
@@ -325,8 +336,8 @@ export default function LoginPage() {
               </button>
             </div>
             <p className="mt-4 text-sm text-ink-600">
-              Somos uma casa dedicada à fé, caridade e organização. Conduzimos giras semanais, desenvolvimento mediúnico e ações sociais,
-              apoiados por um portal interno para finanças, eventos, estoque e cantigas.
+              Somos uma casa dedicada � f�, caridade e organiza��o. Conduzimos giras semanais, desenvolvimento medi�nico e a��es sociais,
+              apoiados por um portal interno para finan�as, eventos, estoque e cantigas.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
@@ -334,7 +345,7 @@ export default function LoginPage() {
                 className="rounded-2xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700"
                 onClick={() => setAboutOpen(false)}
               >
-                Ver página completa
+                Ver p�gina completa
               </Link>
               <a
                 href="https://instagram.com/umbanda_luz_e_fe"
@@ -356,6 +367,10 @@ export default function LoginPage() {
     </div>
   );
 }
+
+
+
+
 
 
 
