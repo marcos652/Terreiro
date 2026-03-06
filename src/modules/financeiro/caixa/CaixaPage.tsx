@@ -18,12 +18,15 @@ export default function CaixaPage() {
   const router = useRouter();
   const normalizedRole = (profile?.role || '').trim().toUpperCase();
   const isMaster = normalizedRole === 'MASTER';
-  const canEdit =
-    isMaster || (normalizedRole === 'EDITOR' && profile?.permissions?.includes('caixa'));
+  const isEditor = normalizedRole === 'EDITOR';
+  const permissions = profile?.permissions || [];
+  const canEdit = isMaster || (isEditor && permissions.includes('caixa'));
   const [transactions, setTransactions] = useState<CashTransaction[]>([]);
   const [filter, setFilter] = useState<'todos' | 'entrada' | 'saida'>('todos');
   const [form, setForm] = useState({ label: '', amount: '', type: 'entrada', method: 'Pix' });
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -65,20 +68,37 @@ export default function CaixaPage() {
   }, [transactions, filter]);
 
   const handleAdd = async () => {
-    if (!form.label || !form.amount) {
+    if (!canEdit) return;
+    const amountNumber = Number(String(form.amount).replace(',', '.'));
+    if (!form.label || Number.isNaN(amountNumber) || amountNumber <= 0) {
+      setErrorMsg('Preencha descrição e valor numérico maior que zero.');
       return;
     }
+    setSaving(true);
+    setErrorMsg('');
     const payload: Omit<CashTransaction, 'id'> = {
       label: form.label,
       type: form.type as 'entrada' | 'saida',
-      amount: Number(form.amount),
+      amount: amountNumber,
       date: new Date().toLocaleDateString('pt-BR'),
       method: form.method,
       created_at: new Date().toISOString(),
     };
-    const id = await addCashTransaction(payload, profile?.email);
-    setTransactions((prev) => [{ id, ...payload }, ...prev]);
-    setForm({ label: '', amount: '', type: 'entrada', method: 'Pix' });
+    try {
+      const id = await addCashTransaction(payload, profile?.email);
+      setTransactions((prev) => [{ id, ...payload }, ...prev]);
+      setForm({ label: '', amount: '', type: 'entrada', method: 'Pix' });
+    } catch (err: any) {
+      console.error('Erro ao registrar movimento', err);
+      const code = err?.code || '';
+      if (code === 'permission-denied') {
+        setErrorMsg('Sem permissão para registrar. Precisa ser MASTER.');
+      } else {
+        setErrorMsg('Não foi possível registrar. Verifique permissão ou conexão.');
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (authLoading || (!user && typeof window !== 'undefined')) {
@@ -180,10 +200,15 @@ export default function CaixaPage() {
             <button
               onClick={handleAdd}
               className="w-full rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
-              disabled={!canEdit}
+              disabled={!canEdit || saving}
             >
-              Registrar movimento
+              {saving ? 'Salvando...' : 'Registrar movimento'}
             </button>
+            {errorMsg && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                {errorMsg}
+              </div>
+            )}
             <div className="rounded-xl border border-ink-100 bg-ink-50 p-3 text-xs text-ink-500">
               Os lançamentos são exibidos no histórico imediatamente.
             </div>

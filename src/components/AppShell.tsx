@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
@@ -122,6 +122,8 @@ const navItems = [
 export default function AppShell({ title, subtitle, actions, children }: AppShellProps) {
   const router = useRouter();
   const { user, loading: authLoading, profile } = useAuth();
+  const normalizedRole = (profile?.role || '').trim().toUpperCase();
+  const isMaster = normalizedRole === 'MASTER';
   const canSignOut = Boolean(auth);
   const [darkMode, setDarkMode] = useState(false);
   const { unreadCount, notifications, markAsRead } = useNotifications();
@@ -131,7 +133,8 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   const [mobileOpen, setMobileOpen] = useState(false);
   const [devtoolsOpen, setDevtoolsOpen] = useState(false);
 
-  const allowedNavItems = navItems; // visibilidade total; permissões só limitam edição nas páginas
+  // Todas as abas liberadas para todos
+  const allowedNavItems = navItems;
 
   const handleSignOut = async () => {
     if (!auth) return;

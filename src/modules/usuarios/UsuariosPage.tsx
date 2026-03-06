@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
 import { useAuth } from '@contexts/AuthContext';
 import { addUser, deleteUser, getUsers, updateUser, upsertUserById, User } from '@services/userService';
@@ -6,7 +6,7 @@ import { createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
 import { auth, firebaseConfig } from '@services/firebase';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 
-type RoleFilter = 'ALL' | 'MASTER' | 'MEMBER';
+type RoleFilter = 'ALL' | 'MASTER' | 'EDITOR' | 'VISUALIZADOR';
 const menuPermissions = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'caixa', label: 'Caixa' },
@@ -15,7 +15,7 @@ const menuPermissions = [
   { key: 'cantigas', label: 'Cantigas' },
   { key: 'youtube', label: 'Youtube Macumba' },
   { key: 'estoque', label: 'Estoque' },
-  { key: 'usuarios', label: 'UsuÃ¡rios' },
+  { key: 'usuarios', label: 'Usuários' },
   { key: 'logs', label: 'Logs' },
 ];
 
@@ -25,7 +25,7 @@ export default function UsuariosPage() {
   const [search, setSearch] = useState('');
   const [role, setRole] = useState<RoleFilter>('ALL');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'MEMBER' as User['role'], password: '' });
+  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'VISUALIZADOR' as User['role'], password: '' });
   const [detailUser, setDetailUser] = useState<User | null>(null);
   const [permDraft, setPermDraft] = useState<string[]>([]);
   const [savingDetail, setSavingDetail] = useState(false);
@@ -35,8 +35,10 @@ export default function UsuariosPage() {
   const normalizedRole = (profile?.role || '').trim().toUpperCase();
   const isMaster = normalizedRole === 'MASTER';
   const isBootstrapMaster = user?.uid === BOOTSTRAP_UID;
-  const canAdmin = isMaster || isBootstrapMaster;
-  // Auth secundÃ¡rio para criar contas sem deslogar o admin
+  const canApprove = isMaster || isBootstrapMaster;
+  const canAdmin = canApprove;
+  const canCreateUser = Boolean(user);
+  // Auth secundÃƒÂ¡rio para criar contas sem deslogar o admin
   const secondaryAuth =
     typeof window === 'undefined'
       ? null
@@ -47,9 +49,14 @@ export default function UsuariosPage() {
   const roleLabel = (value?: User['role']) => {
     if (value === 'MASTER') return 'Master';
     if (value === 'EDITOR') return 'Editor';
-    if (value === 'MEMBER') return 'Visualizacao';
+    if (value === 'VISUALIZADOR') return 'Visualizacao';
     return value || '--';
   };
+
+  useEffect(() => {
+    if (canApprove) return;
+    setNewUser((prev) => ({ ...prev, role: 'VISUALIZADOR' }));
+  }, [canApprove]);
 
   useEffect(() => {
     let active = true;
@@ -92,13 +99,13 @@ export default function UsuariosPage() {
   };
 
   const handleApprove = async (user: User) => {
-    if (!user.id) return;
+    if (!user.id || !canApprove) return;
     setUpdatingId(user.id);
     setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, status: 'APROVADO' } : item)));
     try {
       await updateUser(user.id, { status: 'APROVADO' });
     } catch (error) {
-      console.error('Erro ao aprovar usuÃ¡rio (mantido aprovado localmente)', error);
+      console.error('Erro ao aprovar usuÃƒÂ¡rio (mantido aprovado localmente)', error);
     } finally {
       setUpdatingId(null);
     }
@@ -111,7 +118,7 @@ export default function UsuariosPage() {
     try {
       await updateUser(user.id, { status: 'BLOQUEADO' });
     } catch (error) {
-      console.error('Erro ao bloquear usuÃ¡rio (mantido estado local)', error);
+      console.error('Erro ao bloquear usuÃƒÂ¡rio (mantido estado local)', error);
     } finally {
       setUpdatingId(null);
     }
@@ -124,7 +131,7 @@ export default function UsuariosPage() {
     try {
       await updateUser(user.id, { status: 'DESATIVADO' });
     } catch (error) {
-      console.error('Erro ao desativar usuÃ¡rio (mantido estado local)', error);
+      console.error('Erro ao desativar usuÃƒÂ¡rio (mantido estado local)', error);
     } finally {
       setUpdatingId(null);
     }
@@ -134,50 +141,93 @@ export default function UsuariosPage() {
     if (!user.id) return;
     const confirmed = window.confirm(`Remover ${user.name}?`);
     if (!confirmed) return;
-    // RemoÃ§Ã£o otimista: tira da lista imediatamente
+    // RemoÃƒÂ§ÃƒÂ£o otimista: tira da lista imediatamente
     setUpdatingId(user.id);
     setUsers((prev) => prev.filter((item) => item.id !== user.id));
     try {
       await deleteUser(user.id, profile?.email);
     } catch (error) {
-      console.error('Erro ao remover usuÃ¡rio no Firestore (mantido removido localmente)', error);
-      // mantemos a remoÃ§Ã£o local mesmo se o backend nÃ£o permitir
+      console.error('Erro ao remover usuÃƒÂ¡rio no Firestore (mantido removido localmente)', error);
+      // mantemos a remoÃƒÂ§ÃƒÂ£o local mesmo se o backend nÃƒÂ£o permitir
     } finally {
       setUpdatingId(null);
     }
   };
 
   const handleCreateUser = async () => {
-    if (!newUser.name || !newUser.email || !newUser.password) return;
+    if (!newUser.name || !newUser.email || !newUser.password || !canCreateUser) return;
+    const normalizedEmail = newUser.email.trim().toLowerCase();
+    const isEmailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(normalizedEmail);
+    if (!isEmailValid) {
+      alert('E-mail inválido. Informe um e-mail no formato nome@dominio.com.');
+      return;
+    }
+    const normalizedPassword = newUser.password.trim();
+    if (normalizedPassword.length < 6) {
+      alert('Senha muito curta. Use pelo menos 6 caracteres.');
+      return;
+    }
     setUpdatingId('new');
     try {
       // Cria no Firebase Auth para habilitar login
-      const normalizedEmail = newUser.email.trim().toLowerCase();
-      const normalizedPassword = newUser.password.trim();
-      const cred = await createUserWithEmailAndPassword(
-        secondaryAuth || auth,
-        normalizedEmail,
-        normalizedPassword
-      );
-      const uid = cred.user.uid;
-      const payload: Omit<User, 'id'> = {
-        name: newUser.name,
-        email: normalizedEmail,
-        role: (newUser.role || 'MEMBER').trim().toUpperCase() as User['role'],
-        status: 'APROVADO',
-        created_at: new Date().toISOString(),
-        permissions: newUser.role === 'EDITOR' ? menuPermissions.map((m) => m.key) : undefined,
-      };
-      await upsertUserById(uid, payload, profile?.email);
-      // desconecta app secundÃ¡ria para nÃ£o interferir na sessÃ£o atual
-      if (secondaryAuth) {
-        await secondaryAuth.signOut().catch(() => {});
+      try {
+        const cred = await createUserWithEmailAndPassword(
+          secondaryAuth || auth,
+          normalizedEmail,
+          normalizedPassword
+        );
+        const uid = cred.user.uid;
+        const desiredRole = canApprove
+          ? (newUser.role || 'VISUALIZADOR').trim().toUpperCase() as User['role']
+          : ('VISUALIZADOR' as User['role']);
+        const payload: Omit<User, 'id'> = {
+          name: newUser.name,
+          email: normalizedEmail,
+          role: desiredRole,
+          status: 'APROVADO',
+          created_at: new Date().toISOString(),
+        };
+        await upsertUserById(uid, payload, profile?.email);
+        // desconecta app secundÃƒÂ¡ria para nÃƒÂ£o interferir na sessÃƒÂ£o atual
+        if (secondaryAuth) {
+          await secondaryAuth.signOut().catch(() => {});
+        }
+        setUsers((prev) => [{ id: uid, ...payload }, ...prev]);
+        setNewUser({ name: '', email: '', role: 'VISUALIZADOR', password: '' });
+        return;
+      } catch (error: any) {
+        const code = error?.code;
+        if (code === 'auth/email-already-in-use') {
+          const desiredRole = canApprove
+            ? (newUser.role || 'VISUALIZADOR').trim().toUpperCase() as User['role']
+            : ('VISUALIZADOR' as User['role']);
+          const existing = users.find(
+            (u) => (u.email || '').toLowerCase() === normalizedEmail
+          );
+          const payload: Omit<User, 'id'> = {
+            name: newUser.name,
+            email: normalizedEmail,
+            role: desiredRole,
+            status: 'APROVADO',
+            created_at: new Date().toISOString(),
+          };
+          if (existing?.id) {
+            await upsertUserById(existing.id, payload, profile?.email);
+            setUsers((prev) =>
+              prev.map((u) => (u.id === existing.id ? { ...u, ...payload } : u))
+            );
+            alert('E-mail já existe no Auth. Perfil atualizado no painel.');
+            setNewUser({ name: '', email: '', role: 'VISUALIZADOR', password: '' });
+            return;
+          }
+          alert('E-mail já existe no Auth. Use outro e-mail ou peça para recuperar a senha.');
+          return;
+        }
+        throw error;
       }
-      setUsers((prev) => [{ id: uid, ...payload }, ...prev]);
-      setNewUser({ name: '', email: '', role: 'MEMBER', password: '' });
     } catch (error) {
       console.error('Erro ao Criar usuário/auth', error);
-      alert('NÃ£o foi possÃ­vel Criar usuário. Verifique se o e-mail jÃ¡ existe ou as permissÃµes.');
+      alert('Não foi possível Criar usuário. Verifique se o e-mail já existe ou as permissões.');
     } finally {
       setUpdatingId(null);
     }
@@ -279,52 +329,59 @@ export default function UsuariosPage() {
             >
               <option value="ALL">Todos</option>
               <option value="MASTER">Master</option>
-              <option value="MEMBER">Visualizacao</option>
+              <option value="EDITOR">Editor</option>\n              <option value="VISUALIZADOR">Visualizacao</option>
+              <option value="VISUALIZADOR">Visualizacao</option>
             </select>
             <div className="rounded-xl border border-ink-100 bg-ink-50 p-3 text-xs text-ink-500">
               Mantenha o cadastro atualizado para garantir mensagens e avisos.
             </div>
             <div className="rounded-2xl border border-ink-100 bg-white p-4 text-xs text-ink-500">
-              <div className="text-[11px] uppercase tracking-[0.25em] text-ink-400">Criar usuário</div>
+              <div className="text-[11px] uppercase tracking-[0.25em] text-ink-400">Criar usuÃ¡rio</div>
               <div className="mt-2 flex flex-col gap-2">
                 <input
                   className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
                   placeholder="Nome"
                   value={newUser.name}
                   onChange={(e) => setNewUser((prev) => ({ ...prev, name: e.target.value }))}
-                      disabled={!canAdmin || updatingId === 'new'}
+                      disabled={!canCreateUser || updatingId === 'new'}
                 />
                 <input
                   className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
                   placeholder="E-mail"
                   value={newUser.email}
                   onChange={(e) => setNewUser((prev) => ({ ...prev, email: e.target.value }))}
-                      disabled={!canAdmin || updatingId === 'new'}
+                      disabled={!canCreateUser || updatingId === 'new'}
                 />
                 <input
                   className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
-                  placeholder="Senha (opcional)"
+                  placeholder="Senha (min. 6)"
                   type="password"
                   value={newUser.password}
                   onChange={(e) => setNewUser((prev) => ({ ...prev, password: e.target.value }))}
-                      disabled={!canAdmin || updatingId === 'new'}
+                      disabled={!canCreateUser || updatingId === 'new'}
                 />
                 <select
                   className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
                   value={newUser.role}
                   onChange={(e) => setNewUser((prev) => ({ ...prev, role: e.target.value as User['role'] }))}
-                  disabled={!canAdmin || updatingId === 'new'}
+                  disabled={!canApprove || updatingId === 'new'}
                 >
-                  <option value="MEMBER">VisualizaÃ§Ã£o</option>
-                  <option value="EDITOR">Editor (permissÃµes por aba)</option>
-                  <option value="MASTER">Master</option>
+                  <option value="VISUALIZADOR">VisualizaÃ§Ã£o</option>
+                  <option value="EDITOR">Editor</option>\n              <option value="VISUALIZADOR">Visualizacao</option>
+                  {canApprove && <option value="MASTER">Master</option>}
                 </select>
                 <button
                   onClick={handleCreateUser}
-                  disabled={!canAdmin || updatingId === 'new' || !newUser.name.trim() || !newUser.email.trim()}
+                  disabled={
+                    !canCreateUser ||
+                    updatingId === 'new' ||
+                    !newUser.name.trim() ||
+                    !newUser.email.trim() ||
+                    !newUser.password.trim()
+                  }
                   className="w-full rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
                 >
-                  {updatingId === 'new' ? 'Criando...' : 'Criar usuário'}
+                  {updatingId === 'new' ? 'Criando...' : 'Criar usuÃ¡rio'}
                 </button>
               </div>
             </div>
@@ -354,9 +411,9 @@ export default function UsuariosPage() {
                     disabled={!canAdmin || updatingId === user.id}
                     onChange={(event) => handleRoleChange(user, event.target.value as User['role'])}
                   >
-                    <option value="MEMBER">Visualizacao</option>
-                    <option value="EDITOR">Editor</option>
-                    <option value="MASTER">Master</option>
+                    <option value="VISUALIZADOR">Visualizacao</option>
+                    <option value="EDITOR">Editor</option>\n              <option value="VISUALIZADOR">Visualizacao</option>
+                    {canApprove && <option value="MASTER">Master</option>}
                   </select>
                   <span className="rounded-full bg-ink-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
                     {roleLabel(user.role)}
@@ -369,7 +426,7 @@ export default function UsuariosPage() {
                   {user.status !== 'APROVADO' && (
                     <button
                       onClick={() => handleApprove(user)}
-                      disabled={!isMaster || updatingId === user.id}
+                      disabled={!canApprove || updatingId === user.id}
                       className="rounded-lg border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 hover:border-emerald-300 disabled:opacity-60"
                     >
                       Aprovar
@@ -402,7 +459,7 @@ export default function UsuariosPage() {
                     className="mt-2 w-full rounded-lg border border-ink-200 px-3 py-2 text-xs font-semibold text-ink-700 hover:border-ink-300"
                     disabled={!canAdmin}
                   >
-                    Ficha cadastral / PermissÃµes
+                    Ficha cadastral / PermissÃƒÂµes
                   </button>
                 </div>
               ))}
@@ -432,18 +489,18 @@ export default function UsuariosPage() {
             </div>
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-ink-100 bg-ink-50/70 p-4">
-                <div className="text-[11px] uppercase tracking-[0.2em] text-ink-400">NÃ­vel</div>
+                <div className="text-[11px] uppercase tracking-[0.2em] text-ink-400">NÃƒÂ­vel</div>
                 <div className="mt-2">
                   <span className="rounded-full bg-ink-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-ink-600">
                     {roleLabel(detailUser.role)}
                   </span>
                 </div>
                 <div className="mt-3 text-xs text-ink-500">
-                  Editor: permite granularidade por aba. Member: somente visualizaÃ§Ã£o. Master: total.
+
                 </div>
               </div>
               <div className="rounded-xl border border-ink-100 bg-ink-50/70 p-4">
-                <div className="text-[11px] uppercase tracking-[0.2em] text-ink-400">PermissÃµes por aba</div>
+                <div className="text-[11px] uppercase tracking-[0.2em] text-ink-400">PermissÃƒÂµes por aba</div>
                 <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {menuPermissions.map((item) => (
                     <label
@@ -455,14 +512,14 @@ export default function UsuariosPage() {
                         className="h-4 w-4 rounded border-ink-300 text-ink-900 focus:ring-ink-300"
                         checked={permDraft.includes(item.key)}
                         onChange={() => togglePermission(item.key)}
-                        disabled={!isMaster || savingDetail}
+                        disabled={!canApprove || savingDetail}
                       />
                       <span>{item.label}</span>
                     </label>
                   ))}
                 </div>
                 <div className="mt-3 text-[11px] text-ink-500">
-                  Se o usuÃ¡rio for EDITOR, sÃ³ verÃ¡/editarÃ¡ as abas ligadas aqui.
+
                 </div>
               </div>
             </div>
@@ -475,7 +532,7 @@ export default function UsuariosPage() {
               </button>
               <button
                 onClick={handleSaveDetail}
-                disabled={savingDetail || !isMaster}
+                disabled={savingDetail || !canApprove}
                 className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
               >
                 {savingDetail ? 'Salvando...' : 'Salvar'}
@@ -487,3 +544,9 @@ export default function UsuariosPage() {
     </AppShell>
   );
 }
+
+
+
+
+
+

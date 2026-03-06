@@ -13,8 +13,9 @@ export default function EventosPage() {
   const { profile } = useAuth();
   const normalizedRole = (profile?.role || '').trim().toUpperCase();
   const isMaster = normalizedRole === 'MASTER';
-  const canEdit =
-    isMaster || (normalizedRole === 'EDITOR' && profile?.permissions?.includes('eventos'));
+  const isEditor = normalizedRole === 'EDITOR';
+  const permissions = profile?.permissions || [];
+  const canEdit = isMaster || (isEditor && permissions.includes('eventos'));
   const { addNotification } = useNotifications();
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export default function EventosPage() {
   }, [events, filter]);
 
   const handleAddEvent = async () => {
+    if (!canEdit) return;
     if (!form.title || !form.date || !form.time || !form.leader) {
       return;
     }
@@ -61,6 +63,7 @@ export default function EventosPage() {
   };
 
   const handleDeleteEvent = async (event: EventItem) => {
+    if (!canEdit) return;
     if (!event.id) return;
     const confirmed = window.confirm(`Remover o evento "${event.title}"?`);
     if (!confirmed) return;
@@ -69,6 +72,7 @@ export default function EventosPage() {
   };
 
   const handleStatusChange = async (event: EventItem, status: EventItem['status']) => {
+    if (!canEdit) return;
     if (!event.id) return;
     await updateEvent(event.id, { status }, profile?.email);
     setEvents((prev) => prev.map((item) => (item.id === event.id ? { ...item, status } : item)));

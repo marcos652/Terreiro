@@ -1,79 +1,97 @@
 rules_version = '2';
 service cloud.firestore {
-  // UIDs liberados para administração (bootstrap)
-  function isBootstrapMaster() {
-    return request.auth != null
-      && (request.auth.uid == "rpdLNx3X4CZhFvB6O9bvXbFA72y1"  // master original
-          || request.auth.uid == "ljfZse4jR6a7N9ryivGtlGne9Rh2"); // seu usuário atual
-  }
-
-  function isMaster() {
-    return isBootstrapMaster()
-      || (request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches("(?i)^\\s*master\\s*$"));
-  }
-
-  function isEditor() {
-    return request.auth != null
-      && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches("(?i)^\\s*editor\\s*$");
-  }
-
   match /databases/{database}/documents {
+    // Helpers scoped to this database
+    function authUser() {
+      return request.auth != null ? request.auth.uid : null;
+    }
 
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(authUser()));
+    }
+
+    function userData() {
+      return userDoc().data;
+    }
+
+    function userRole() {
+      let data = userData();
+      return (data != null && data.role != null ? data.role : "").lower();
+    }
+
+    function isBootstrapMaster() {
+      return request.auth != null &&
+        (request.auth.uid == "rpdLNx3X4CZhFvB6O9bvXbFA72y1" || request.auth.uid == "ljfZse4jR6a7N9ryivGtlGne9Rh2");
+    }
+
+    function isMaster() {
+      return isBootstrapMaster() || userRole() == "master";
+    }
+
+    function isEditor() {
+      return userRole() == "editor";
+    }
+
+    function hasPermission(key) {
+      let data = userData();
+      let perms = (data != null && data.permissions != null) ? data.permissions : [];
+      return isMaster() || (isEditor() && perms.hasAny([key]));
+    }
+
+    // Users
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null
-        && (
-          (request.auth.uid == userId
-            && request.resource.data.role == "MEMBER"
-            && request.resource.data.status == "PENDENTE")
-          || isMaster()
-        );
+      allow create: if request.auth != null && (isMaster() || request.auth.uid == userId);
       allow update, delete: if isMaster();
     }
 
+    // Estoque
     match /stock_items/{docId} {
       allow read: if request.auth != null;
-      allow write: if isMaster() || isEditor();
+      allow write: if hasPermission("estoque");
     }
 
+    // Eventos
     match /events/{docId} {
       allow read: if request.auth != null;
-      allow write: if isMaster() || isEditor();
+      allow write: if hasPermission("eventos");
     }
 
+    // Caixa
     match /cash_transactions/{docId} {
       allow read: if request.auth != null;
-      allow write: if isMaster() || isEditor();
+      allow write: if hasPermission("caixa");
     }
 
+    // Mensalidades
     match /memberships/{docId} {
       allow read: if request.auth != null;
-      allow write: if isMaster() || isEditor();
+      allow write: if hasPermission("mensalidades");
     }
 
+    // Fichas focais (dashboard)
     match /focus_notes/{docId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if isMaster() || isEditor();
+      allow write: if hasPermission("dashboard");
     }
 
+    // Cantigas
     match /cantigas/{docId} {
       allow read: if request.auth != null;
-      allow write: if isMaster() || isEditor();
+      allow write: if hasPermission("cantigas");
     }
 
+    // Ações / pendências
     match /action_items/{docId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null
-        && request.resource.data.created_by == request.auth.uid;
-      allow update: if request.auth != null
-        && (isMaster() || isEditor() || resource.data.created_by == request.auth.uid);
-      allow delete: if isMaster() || isEditor();
+      allow write: if hasPermission("dashboard");
     }
 
+    // Logs
     match /logs/{logId} {
-      allow read, write: if isMaster() || isEditor();
+      allow read: if request.auth != null;
+      // qualquer usuário autenticado pode registrar logs (usados por todas as abas)
+      allow write: if request.auth != null;
     }
   }
 }

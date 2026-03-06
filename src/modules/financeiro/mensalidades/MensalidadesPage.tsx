@@ -13,6 +13,7 @@ import {
 import { logService } from '@services/logService';
 
 export default function MensalidadesPage() {
+  const { profile } = useAuth();
   const formatBRL = (value: number) =>
     new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
   const getMonthKey = (date: Date) =>
@@ -32,11 +33,11 @@ export default function MensalidadesPage() {
   const [debtReductionInput, setDebtReductionInput] = useState('');
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberValue, setNewMemberValue] = useState('');
-  const { profile } = useAuth();
   const normalizedRole = (profile?.role || '').trim().toUpperCase();
   const isMaster = normalizedRole === 'MASTER';
-  const canEdit =
-    isMaster || (normalizedRole === 'EDITOR' && profile?.permissions?.includes('mensalidades'));
+  const isEditor = normalizedRole === 'EDITOR';
+  const permissions = profile?.permissions || [];
+  const canEdit = isMaster || (isEditor && permissions.includes('mensalidades'));
   const monthlyGoalBase = 690;
   const monthlyGoal = Math.max(0, monthlyGoalBase - goalReduction);
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -70,6 +71,10 @@ export default function MensalidadesPage() {
       if (!active) return;
       const currentMonth = getMonthKey(new Date());
       const hasCurrentMonth = data.some((member) => member.month === currentMonth);
+      if (!canEdit && !hasCurrentMonth) {
+        setMembers(data);
+        return;
+      }
       if (!hasCurrentMonth) {
         const created = await Promise.all(
           defaultNames.map(async (name) => {
@@ -99,7 +104,7 @@ export default function MensalidadesPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [canEdit]);
 
   const parseBRDate = (value: string) => {
     const parts = value.split('/');
@@ -182,6 +187,7 @@ export default function MensalidadesPage() {
   }, [members]);
 
   const handleToggle = async (member: MembershipItem) => {
+    if (!canEdit) return;
     if (!member.id) return;
     const nextStatus = member.status === 'pago' ? 'pendente' : 'pago';
     const nextPayment =
@@ -195,6 +201,7 @@ export default function MensalidadesPage() {
   };
 
   const handleResetMembers = async () => {
+    if (!canEdit) return;
     const confirmed = window.confirm(
       'Isso vai apagar todos os registros atuais e recriar a lista padr\u00e3o. Deseja continuar?'
     );
@@ -226,6 +233,7 @@ export default function MensalidadesPage() {
   };
 
   const handleAddMember = async () => {
+    if (!canEdit) return;
     if (!newMemberName || !newMemberValue) return;
     setAdding(true);
     try {
@@ -248,6 +256,7 @@ export default function MensalidadesPage() {
   };
 
   const handleRemoveMember = async (member: MembershipItem) => {
+    if (!canEdit) return;
     if (!member.id) return;
     const confirmed = window.confirm(`Remover ${member.name}?`);
     if (!confirmed) return;
@@ -320,7 +329,7 @@ export default function MensalidadesPage() {
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
             <button
               onClick={handleResetMembers}
-              disabled={resetting || !isMaster}
+              disabled={resetting || !canEdit}
               className="w-full rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-ink-300 disabled:opacity-60 sm:w-auto"
             >
               {resetting ? 'Recriando...' : 'Criar lista padr\u00e3o'}
@@ -354,7 +363,7 @@ export default function MensalidadesPage() {
               />
               <button
                 onClick={handleApplyGoalReduction}
-                disabled={!isMaster || !goalReductionInput || Number(goalReductionInput) <= 0}
+                disabled={!canEdit || !goalReductionInput || Number(goalReductionInput) <= 0}
                 className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
                 type="button"
               >
@@ -386,7 +395,7 @@ export default function MensalidadesPage() {
               />
               <button
                 onClick={handleApplyPaidReduction}
-                disabled={!isMaster || !paidReductionInput || Number(paidReductionInput) <= 0}
+                disabled={!canEdit || !paidReductionInput || Number(paidReductionInput) <= 0}
                 className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
                 type="button"
               >
@@ -420,7 +429,7 @@ export default function MensalidadesPage() {
               />
               <button
                 onClick={handleApplyDebtReduction}
-                disabled={!isMaster || !debtReductionInput || Number(debtReductionInput) <= 0}
+                disabled={!canEdit || !debtReductionInput || Number(debtReductionInput) <= 0}
                 className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
                 type="button"
               >
@@ -507,7 +516,7 @@ export default function MensalidadesPage() {
                 />
                 <button
                   onClick={handleAddMember}
-                  disabled={!isMaster || adding || newMemberName.trim().length === 0}
+                  disabled={!canEdit || adding || newMemberName.trim().length === 0}
                   className="w-full rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60 md:w-auto"
                 >
                   {adding ? 'Adicionando...' : 'Adicionar'}
@@ -578,3 +587,5 @@ export default function MensalidadesPage() {
     </AppShell>
   );
 }
+
+

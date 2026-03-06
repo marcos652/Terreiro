@@ -8,9 +8,9 @@ export interface User {
   name: string;
   email: string;
   password?: string; // hash
-  role: 'MASTER' | 'EDITOR' | 'MEMBER';
+  role: 'MASTER' | 'EDITOR' | 'VISUALIZADOR';
   status: 'PENDENTE' | 'APROVADO' | 'BLOQUEADO' | 'DESATIVADO';
-  permissions?: string[]; // slugs das abas liberadas quando role = EDITOR
+  permissions?: string[]; // usado para EDITOR
   created_at: string;
 }
 
@@ -36,7 +36,12 @@ export async function getUserById(id: string) {
   const docRef = doc(db, COLLECTIONS.USERS, id);
   const docSnap = await getDoc(docRef);
   if (docSnap.exists()) {
-    return { id: docSnap.id, ...docSnap.data() } as User;
+    const data = docSnap.data() as User;
+    const normalizedRole = (data.role || 'VISUALIZADOR').toUpperCase() as User['role'];
+    // fallback para garantir status/role ativos
+    const role = normalizedRole;
+    const status = (data.status || 'APROVADO') as User['status'];
+    return { id: docSnap.id, ...data, role, status };
   }
   return null;
 }

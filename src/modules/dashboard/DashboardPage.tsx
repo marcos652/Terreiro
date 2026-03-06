@@ -76,7 +76,7 @@ const DashboardPage = () => {
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [actionText, setActionText] = useState('');
   const [actionSaving, setActionSaving] = useState(false);
-  const isMaster = profile?.role === 'MASTER';
+  const isMaster = (profile?.role || '').trim().toUpperCase() === 'MASTER';
 
   const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'year'>('month');
 

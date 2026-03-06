@@ -19,7 +19,9 @@ export default function CantigasPage() {
   const { profile } = useAuth();
   const normalizedRole = (profile?.role || "").trim().toUpperCase();
   const isMaster = normalizedRole === "MASTER";
-  const canEdit = isMaster || (normalizedRole === "EDITOR" && profile?.permissions?.includes("cantigas"));
+  const isEditor = normalizedRole === "EDITOR";
+  const permissions = profile?.permissions || [];
+  const canEdit = isMaster || (isEditor && permissions.includes("cantigas"));
 
   useEffect(() => {
     let active = true;

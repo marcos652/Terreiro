@@ -15,11 +15,12 @@ export default function LogsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [clearing, setClearing] = useState(false);
-  const { profile } = useAuth();
-  const canManageLogs =
-    profile?.role === 'MASTER' ||
-    (profile?.role === 'EDITOR' && profile.permissions?.includes('logs'));
+  const { profile, loading: authLoading } = useAuth();
+  const normalizedRole = (profile?.role || '').trim().toUpperCase();
+  const canManageLogs = normalizedRole === 'MASTER';
   useEffect(() => {
+    // wait auth to load; block users without permission to avoid Firestore error
+    if (authLoading) return;
     const fetchLogs = async () => {
       setLoading(true);
       setError('');
@@ -35,7 +36,7 @@ export default function LogsPage() {
       }
     };
     fetchLogs();
-  }, []);
+  }, [authLoading]);
   const formatDate = (ts?: Timestamp) => {
     try {
       return ts ? ts.toDate().toLocaleString('pt-BR') : '—';
