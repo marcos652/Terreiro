@@ -177,14 +177,12 @@ export default function UsuariosPage() {
           normalizedPassword
         );
         const uid = cred.user.uid;
-        const desiredRole = canApprove
-          ? (newUser.role || 'VISUALIZADOR').trim().toUpperCase() as User['role']
-          : ('VISUALIZADOR' as User['role']);
+        const desiredRole = (newUser.role || 'VISUALIZADOR').trim().toUpperCase() as User['role'];
         const payload: Omit<User, 'id'> = {
           name: newUser.name,
           email: normalizedEmail,
           role: desiredRole,
-          status: 'APROVADO',
+          status: 'PENDENTE',
           created_at: new Date().toISOString(),
         };
         await upsertUserById(uid, payload, profile?.email);
@@ -198,9 +196,7 @@ export default function UsuariosPage() {
       } catch (error: any) {
         const code = error?.code;
         if (code === 'auth/email-already-in-use') {
-          const desiredRole = canApprove
-            ? (newUser.role || 'VISUALIZADOR').trim().toUpperCase() as User['role']
-            : ('VISUALIZADOR' as User['role']);
+          const desiredRole = (newUser.role || 'VISUALIZADOR').trim().toUpperCase() as User['role'];
           const existing = users.find(
             (u) => (u.email || '').toLowerCase() === normalizedEmail
           );
@@ -208,7 +204,7 @@ export default function UsuariosPage() {
             name: newUser.name,
             email: normalizedEmail,
             role: desiredRole,
-            status: 'APROVADO',
+            status: 'PENDENTE',
             created_at: new Date().toISOString(),
           };
           if (existing?.id) {
@@ -216,7 +212,7 @@ export default function UsuariosPage() {
             setUsers((prev) =>
               prev.map((u) => (u.id === existing.id ? { ...u, ...payload } : u))
             );
-            alert('E-mail já existe no Auth. Perfil atualizado no painel.');
+            alert('E-mail já existe no Auth. Perfil mantido como pendente para aprovação.');
             setNewUser({ name: '', email: '', role: 'VISUALIZADOR', password: '' });
             return;
           }
@@ -411,8 +407,8 @@ export default function UsuariosPage() {
                     disabled={!canAdmin || updatingId === user.id}
                     onChange={(event) => handleRoleChange(user, event.target.value as User['role'])}
                   >
-                    <option value="VISUALIZADOR">Visualizacao</option>
-                    <option value="EDITOR">Editor</option>\n              <option value="VISUALIZADOR">Visualizacao</option>
+                    <option value="VISUALIZADOR">Visualização</option>
+                    <option value="EDITOR">Editor</option>
                     {canApprove && <option value="MASTER">Master</option>}
                   </select>
                   <span className="rounded-full bg-ink-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
