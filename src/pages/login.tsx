@@ -1,5 +1,6 @@
 ﻿import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, firebaseConfig, firebaseConfigMissing } from '@services/firebase';
@@ -15,7 +16,15 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const router = useRouter();
+
+  const nextGira = {
+    titulo: 'Próxima gira',
+    data: 'Sábado • 22 de março • 19h',
+    tema: 'Gira de caboclos',
+    local: 'Estrada Vicinal - Avencas, Marília/SP • CEP 17532-000',
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,14 +50,14 @@ export default function LoginPage() {
             name: normalizedEmail.split('@')[0],
             email: normalizedEmail,
             role: 'VISUALIZADOR',
-            status: 'APROVADO',
+            status: 'PENDENTE',
             created_at: new Date().toISOString(),
           });
-          // Mantemos conectado para acesso imediato
-          
-          setInfo('Conta criada e aprovada. Você já está logado.');
+          await signOut(auth).catch(() => {});
+          setInfo('Conta criada. Aguarde aprovação do master para acessar.');
+          setPassword('');
+          setMode('login');
           setLoading(false);
-          router.push('/');
           return;
         } catch (err: any) {
           const code = err?.code || '';
@@ -93,7 +102,7 @@ export default function LoginPage() {
           name: normalizedEmail.split('@')[0],
           email: normalizedEmail,
           role: 'VISUALIZADOR' as const,
-          status: 'APROVADO' as const,
+          status: 'PENDENTE' as const,
           created_at: new Date().toISOString(),
         };
         try {
@@ -162,27 +171,48 @@ export default function LoginPage() {
         <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 md:px-10 min-w-0">
           <div className="grid w-full min-w-0 gap-12 lg:grid-cols-[1.05fr_0.95fr]">
             <div className="flex flex-col justify-center gap-6">
-              <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.4em] text-ink-400">
-                <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-ink-100/60">
-                  <Image
-                    src="/logo-templo.svg"
-                    alt="Templo de Umbanda Luz e FÃ©"
-                    fill
-                    sizes="56px"
-                    className="object-contain"
-                    priority
-                  />
+            <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.4em] text-ink-400">
+              <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-ink-100/60">
+                <Image
+                  src="/logo-templo.svg"
+                  alt="Templo de Umbanda Luz e Fé"
+                  fill
+                  sizes="56px"
+                  className="object-contain"
+                  priority
+                />
                 </div>
                 <span>Templo Luz e FÃ©</span>
               </div>
-              <h1 className="font-display text-5xl font-semibold leading-tight text-ink-900 md:text-6xl">
-                Seja bem-vindo, que os orixás te abençoem!
-              </h1>
+            <h1 className="font-display text-5xl font-semibold leading-tight text-ink-900 md:text-6xl">
+              Seja bem-vindo, que os orixás te abençoem!
+            </h1>
+            <div className="flex flex-col gap-3 rounded-3xl bg-white/90 p-5 shadow-[0_30px_90px_-40px_rgba(15,23,42,0.6)] ring-1 ring-ink-100/80">
+              <div className="text-[11px] uppercase tracking-[0.28em] text-amber-500">{nextGira.titulo}</div>
+              <div className="text-xl font-semibold text-ink-900">{nextGira.data}</div>
+              <div className="text-sm text-ink-500">{nextGira.tema}</div>
+              <div className="text-xs text-ink-400">{nextGira.local}</div>
+            </div>
               <div className="flex flex-wrap items-center gap-3 text-xs text-ink-400">
                 <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Seguro</span>
                 <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Organizado</span>
                 <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Confiável</span>
-              </div>
+                <button
+                  type="button"
+                  onClick={() => setAboutOpen(true)}
+                  className="rounded-full border border-ink-200/70 bg-white/90 px-3 py-1 text-ink-700 shadow-sm hover:border-ink-300"
+                >
+                  Sobre o terreiro
+                </button>
+                <span className="inline-flex items-center gap-2 rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 text-ink-500" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <rect x="4" y="4" width="16" height="16" rx="4" />
+                  <circle cx="12" cy="12" r="4" />
+                  <circle cx="17.5" cy="6.5" r="1" />
+                </svg>
+                <span className="font-semibold text-ink-700">@umbanda_luz_e_fe</span>
+              </span>
+            </div>
             </div>
 
             <form
@@ -277,7 +307,55 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {aboutOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur">
+          <div className="w-full max-w-3xl rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-xs uppercase tracking-[0.3em] text-amber-500">Quem somos</div>
+                <div className="mt-1 text-2xl font-semibold text-ink-900">Templo de Umbanda Luz e Fé</div>
+                <div className="text-sm text-ink-500">Marília/SP • Estrada Vicinal - Avencas • CEP 17532-000</div>
+              </div>
+              <button
+                onClick={() => setAboutOpen(false)}
+                className="rounded-full border border-ink-200 px-3 py-1 text-sm font-semibold text-ink-600 hover:border-ink-300"
+              >
+                Fechar
+              </button>
+            </div>
+            <p className="mt-4 text-sm text-ink-600">
+              Somos uma casa dedicada à fé, caridade e organização. Conduzimos giras semanais, desenvolvimento mediúnico e ações sociais,
+              apoiados por um portal interno para finanças, eventos, estoque e cantigas.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                href="/quem-somos"
+                className="rounded-2xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700"
+                onClick={() => setAboutOpen(false)}
+              >
+                Ver página completa
+              </Link>
+              <a
+                href="https://instagram.com/umbanda_luz_e_fe"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-2xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-ink-300"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6">
+                  <rect x="4" y="4" width="16" height="16" rx="4" />
+                  <circle cx="12" cy="12" r="4" />
+                  <circle cx="17.5" cy="6.5" r="1" />
+                </svg>
+                @umbanda_luz_e_fe
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+
 
