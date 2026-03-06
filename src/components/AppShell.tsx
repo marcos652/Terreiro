@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
@@ -132,6 +132,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [devtoolsOpen, setDevtoolsOpen] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(false);
 
   // Todas as abas liberadas para todos
   const allowedNavItems = navItems;
@@ -153,26 +154,26 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
     }
   }, [authLoading, user, router]);
 
-  // Garante que o usuário MASTER tenha documento com o mesmo uid (necessário para regras do Firestore)
+  // Garante que o usuÃ¡rio MASTER tenha documento com o mesmo uid (necessÃ¡rio para regras do Firestore)
   useEffect(() => {
     if (!user || profile?.role !== 'MASTER') return;
     const ensureMasterDoc = async () => {
       try {
         await upsertUser(user.uid, {
-          name: profile?.name || user.displayName || user.email?.split('@')[0] || 'Usuário',
+          name: profile?.name || user.displayName || user.email?.split('@')[0] || 'UsuÃ¡rio',
           email: user.email || '',
           role: 'MASTER',
           status: 'APROVADO',
           created_at: profile?.created_at || new Date().toISOString(),
         });
       } catch (err) {
-        console.error('Não foi possível garantir doc de usuário MASTER', err);
+        console.error('NÃ£o foi possÃ­vel garantir doc de usuÃ¡rio MASTER', err);
       }
     };
     ensureMasterDoc();
   }, [user, profile]);
 
-  // Detecta DevTools aberto e oculta conteúdo sensível
+  // Detecta DevTools aberto e oculta conteÃºdo sensÃ­vel
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const checkDevtools = () => {
@@ -277,19 +278,27 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
         )}
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.20),_rgba(255,255,255,0))]" />
         <div className="flex min-h-screen">
-          <aside className="relative hidden w-72 flex-shrink-0 border-r border-gray-800 bg-black backdrop-blur md:flex md:flex-col lg:w-80">
+          <aside
+            className={`relative hidden flex-shrink-0 border-r border-gray-800 bg-black backdrop-blur transition-all duration-200 md:flex md:flex-col ${
+              navCollapsed ? 'w-20 lg:w-24' : 'w-72 lg:w-80'
+            }`}
+          >
             <div className="pointer-events-none absolute right-0 top-0 h-full w-px bg-gradient-to-b from-ink-100 via-ink-200 to-transparent opacity-80" />
-            <div className="flex items-center gap-3 px-7 py-7">
+            <div className={`flex items-center gap-3 px-7 py-7 ${navCollapsed ? 'justify-center' : ''}`}>
               <div className="relative h-12 w-12 overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/20">
                 <Image src="/logo-templo.svg" alt="Templo de Umbanda Luz e Fé" fill sizes="48px" className="object-contain" priority />
               </div>
-              <div>
-                <div className="font-display text-xl font-semibold text-white">Luz e Fé</div>
-                <div className="text-[11px] uppercase tracking-[0.24em] text-ink-300">Templo</div>
-              </div>
+              {!navCollapsed && (
+                <div>
+                  <div className="font-display text-xl font-semibold text-white">Luz e Fé</div>
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-ink-300">Templo</div>
+                </div>
+              )}
             </div>
             <nav className="flex-1 px-5 pb-6">
-              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 mb-4">Navegação</div>
+              {!navCollapsed && (
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 mb-4">Navegação</div>
+              )}
               <div className="flex flex-col gap-1.5">
                 {allowedNavItems.map((item) => {
                   const active = router.pathname === item.href;
@@ -302,20 +311,41 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                       }`}
                     >
                       <span className="text-ink-400">{item.icon}</span>
-                      <span>{item.label}</span>
+                      {!navCollapsed && <span>{item.label}</span>}
                     </Link>
                   );
                 })}
               </div>
             </nav>
             <div className="border-t border-ink-100 px-7 py-5 text-xs text-ink-400">
-              <div>Painel interno</div>
-              <div className="mt-2 text-sm font-semibold text-ink-200">Desenvolvido Por Marcos Vinicius</div>
+              {!navCollapsed && (
+                <>
+                  <div>Painel interno</div>
+                  <div className="mt-2 text-sm font-semibold text-ink-200">Desenvolvido Por Marcos Vinicius</div>
+                </>
+              )}
             </div>
           </aside>
           <div className="flex-1 min-w-0">
             <header className="flex flex-col gap-4 border-b border-ink-100 bg-white/75 px-4 py-4 backdrop-blur md:flex-row md:items-center md:justify-between md:px-6 2xl:px-12">
               <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setNavCollapsed((prev) => !prev)}
+                  className="hidden h-10 w-10 items-center justify-center rounded-2xl border border-ink-200 bg-white text-ink-600 hover:border-ink-300 md:inline-flex"
+                  aria-label={navCollapsed ? 'Expandir menu' : 'Recolher menu'}
+                  title={navCollapsed ? 'Expandir menu' : 'Recolher menu'}
+                >
+                  {navCollapsed ? (
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path d="M9 6l6 6-6 6" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path d="M15 6l-6 6 6 6" />
+                    </svg>
+                  )}
+                </button>
                 <button
                   type="button"
                   onClick={() => setMobileOpen(true)}
@@ -338,7 +368,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                   <div className="mt-1 h-1 w-16 rounded-full bg-gradient-to-r from-amber-400 via-amber-200 to-transparent" />
                   {subtitle && <p className="mt-2 text-sm text-ink-500">{subtitle}</p>}
                   <div className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-ink-400">
-                    {todayLabel} • Marília / SP • Templo de Umbanda Luz e Fé
+                    {todayLabel} â€¢ MarÃ­lia / SP â€¢ Templo de Umbanda Luz e Fé
                   </div>
                 </div>
               </div>
@@ -491,3 +521,5 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
     </div>
   );
 }
+
+
