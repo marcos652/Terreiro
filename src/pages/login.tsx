@@ -26,7 +26,7 @@ export default function LoginPage() {
       if (!auth) {
         const missing =
           firebaseConfigMissing.length > 0 ? ` (${firebaseConfigMissing.join(', ')})` : '';
-        setError(`ConfiguraÃ§Ã£o do Firebase nÃ£o encontrada.${missing}`);
+        setError(`Configuração do Firebase não encontrada.${missing}`);
         setLoading(false);
         return;
       }
@@ -46,7 +46,7 @@ export default function LoginPage() {
           });
           // Mantemos conectado para acesso imediato
           
-          setInfo('Conta criada e aprovada. VocÃª jÃ¡ estÃ¡ logado.');
+          setInfo('Conta criada e aprovada. Você já está logado.');
           setLoading(false);
           router.push('/');
           return;
@@ -55,14 +55,14 @@ export default function LoginPage() {
           if (code === 'auth/email-already-in-use') {
             try {
               await sendPasswordResetEmail(auth, normalizedEmail);
-              setInfo('E-mail jÃ¡ cadastrado. Enviamos um link para redefinir a senha.');
+              setInfo('E-mail já cadastrado. Enviamos um link para redefinir a senha.');
             } catch {
-              setError('E-mail jÃ¡ cadastrado. Tente recuperar a senha.');
+              setError('E-mail já cadastrado. Tente recuperar a senha.');
             }
           } else if (code === 'auth/weak-password') {
             setError('Senha muito curta. Use 6 caracteres ou mais.');
           } else {
-            const generic = 'N\u00e3o foi poss\u00edvel criar a conta. Verifique o e-mail ou tente outra senha.';
+            const generic = 'Não foi possível criar a conta. Verifique o e-mail ou tente outra senha.';
             const msg = err?.message ? `${generic} (Detalhe: ${err.message})` : generic;
             setError(msg);
           }
@@ -78,9 +78,9 @@ export default function LoginPage() {
         const code = err?.code || '';
         const isNotFound = code === 'auth/user-not-found' || code === 'auth/invalid-credential';
         if (isNotFound) {
-          setError('UsuÃ¡rio nÃ£o encontrado ou senha invÃ¡lida.');
+          setError('Usuário não encontrado ou senha inválida.');
         } else {
-          setError('UsuÃ¡rio ou senha invÃ¡lidos.');
+          setError('Usuário ou senha inválidos.');
         }
         setLoading(false);
         return;
@@ -120,7 +120,7 @@ export default function LoginPage() {
       }
       router.push('/');
     } catch (err: any) {
-      setError('UsuÃ¡rio ou senha invÃ¡lidos.');
+      setError('Usuário ou senha inválidos.');
     } finally {
       setLoading(false);
     }
@@ -176,12 +176,12 @@ export default function LoginPage() {
                 <span>Templo Luz e FÃ©</span>
               </div>
               <h1 className="font-display text-5xl font-semibold leading-tight text-ink-900 md:text-6xl">
-                Seja bem-vindo, que os orixÃ¡s te abenÃ§oem!
+                Seja bem-vindo, que os orixás te abençoem!
               </h1>
               <div className="flex flex-wrap items-center gap-3 text-xs text-ink-400">
                 <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Seguro</span>
                 <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Organizado</span>
-                <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">ConfiÃ¡vel</span>
+                <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Confiável</span>
               </div>
             </div>
 
@@ -196,7 +196,7 @@ export default function LoginPage() {
                 </h2>
                 <p className="text-lg text-ink-500">
                   {mode === 'register'
-                    ? 'Cadastre um acesso. O master precisarÃ¡ aprovar.'
+                    ? 'Cadastre um acesso. Se for editor ou master, peça para atribuírem seu papel.'
                     : 'Use seu e-mail e senha cadastrados.'}
                 </p>
               </div>
@@ -270,7 +270,7 @@ export default function LoginPage() {
                   Esqueci minha senha
                 </button>
                 <div className="mt-2 text-center text-xs text-ink-400">
-                  Precisa de acesso? Fale com a administraÃ§Ã£o.
+                  Precisa de acesso? Fale com a administração.
                 </div>
               </div>
             </form>

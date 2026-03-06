@@ -105,7 +105,7 @@ export default function UsuariosPage() {
     try {
       await updateUser(user.id, { status: 'APROVADO' });
     } catch (error) {
-      console.error('Erro ao aprovar usuÃƒÂ¡rio (mantido aprovado localmente)', error);
+      console.error('Erro ao aprovar usuário (mantido aprovado localmente)', error);
     } finally {
       setUpdatingId(null);
     }
@@ -118,7 +118,7 @@ export default function UsuariosPage() {
     try {
       await updateUser(user.id, { status: 'BLOQUEADO' });
     } catch (error) {
-      console.error('Erro ao bloquear usuÃƒÂ¡rio (mantido estado local)', error);
+      console.error('Erro ao bloquear usuário (mantido estado local)', error);
     } finally {
       setUpdatingId(null);
     }
@@ -131,7 +131,7 @@ export default function UsuariosPage() {
     try {
       await updateUser(user.id, { status: 'DESATIVADO' });
     } catch (error) {
-      console.error('Erro ao desativar usuÃƒÂ¡rio (mantido estado local)', error);
+      console.error('Erro ao desativar usuário (mantido estado local)', error);
     } finally {
       setUpdatingId(null);
     }
@@ -147,7 +147,7 @@ export default function UsuariosPage() {
     try {
       await deleteUser(user.id, profile?.email);
     } catch (error) {
-      console.error('Erro ao remover usuÃƒÂ¡rio no Firestore (mantido removido localmente)', error);
+      console.error('Erro ao remover usuário no Firestore (mantido removido localmente)', error);
       // mantemos a remoÃƒÂ§ÃƒÂ£o local mesmo se o backend nÃƒÂ£o permitir
     } finally {
       setUpdatingId(null);
@@ -226,7 +226,7 @@ export default function UsuariosPage() {
         throw error;
       }
     } catch (error) {
-      console.error('Erro ao Criar usuário/auth', error);
+      console.error('Erro ao criar usuário/auth', error);
       alert('Não foi possível Criar usuário. Verifique se o e-mail já existe ou as permissões.');
     } finally {
       setUpdatingId(null);
