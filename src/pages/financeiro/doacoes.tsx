@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+ï»¿import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
 import { useAuth } from '@contexts/AuthContext';
 import { addCashTransaction, getCashTransactions, CashTransaction } from '@services/transactionService';
@@ -20,7 +20,7 @@ export default function DoacoesPage() {
   useEffect(() => {
     getCashTransactions()
       .then((data) => {
-        setTransactions(data.filter((t) => (t.method || '').toLowerCase() === 'doação'));
+        setTransactions(data.filter((t) => (t.method || '').toLowerCase() === 'doaï¿½ï¿½o'));
       })
       .finally(() => setLoading(false));
   }, []);
@@ -37,10 +37,10 @@ export default function DoacoesPage() {
     setSaving(true);
     try {
       const payload: Omit<CashTransaction, 'id'> = {
-        label: `Doação - ${donor.trim()}`,
+        label: `Doaï¿½ï¿½o - ${donor.trim()}`,
         amount,
         type: 'entrada',
-        method: 'Doação',
+        method: 'Doaï¿½ï¿½o',
         created_at: new Date().toISOString(),
       };
       const id = await addCashTransaction(payload, profile?.email);
@@ -53,10 +53,10 @@ export default function DoacoesPage() {
   };
 
   return (
-    <AppShell title="Doações" subtitle="Registre entradas de doadores e atualize o caixa.">
+    <AppShell title="Doaï¿½ï¿½es" subtitle="Registre entradas de doadores e atualize o caixa.">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_0.9fr]">
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
-          <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Nova doação</div>
+          <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Nova doaï¿½ï¿½o</div>
           <div className="mt-3 flex flex-col gap-3">
             <input
               className="rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
@@ -80,11 +80,11 @@ export default function DoacoesPage() {
               disabled={!canEdit || saving || !donor.trim() || !value}
               className="w-full rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
             >
-              {saving ? 'Registrando...' : 'Registrar doação'}
+              {saving ? 'Registrando...' : 'Registrar doaï¿½ï¿½o'}
             </button>
             {!canEdit && (
               <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                Você não tem permissão para registrar doações.
+                Vocï¿½ nï¿½o tem permissï¿½o para registrar doaï¿½ï¿½es.
               </div>
             )}
           </div>
@@ -95,16 +95,16 @@ export default function DoacoesPage() {
           <div className="mt-2 text-3xl font-semibold text-emerald-600">
             R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div className="mt-4 text-xs text-ink-400">Somatório de todas as doações registradas.</div>
+          <div className="mt-4 text-xs text-ink-400">Somatï¿½rio de todas as doaï¿½ï¿½es registradas.</div>
         </div>
       </div>
 
       <div className="mt-6 rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
-        <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Histórico</div>
+        <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Histï¿½rico</div>
         {loading ? (
           <div className="py-6 text-sm text-ink-400">Carregando...</div>
         ) : transactions.length === 0 ? (
-          <div className="py-6 text-sm text-ink-400">Nenhuma doação registrada.</div>
+          <div className="py-6 text-sm text-ink-400">Nenhuma doaï¿½ï¿½o registrada.</div>
         ) : (
           <div className="mt-3 space-y-2">
             {transactions.map((t) => (
@@ -122,3 +122,4 @@ export default function DoacoesPage() {
     </AppShell>
   );
 }
+
