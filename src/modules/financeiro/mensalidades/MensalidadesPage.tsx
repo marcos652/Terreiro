@@ -69,32 +69,7 @@ export default function MensalidadesPage() {
     const load = async () => {
       const data = await getMemberships();
       if (!active) return;
-      const currentMonth = getMonthKey(new Date());
-      const hasCurrentMonth = data.some((member) => member.month === currentMonth);
-      if (!canEdit && !hasCurrentMonth) {
-        setMembers(data);
-        return;
-      }
-      if (!hasCurrentMonth) {
-        const created = await Promise.all(
-          defaultNames.map(async (name) => {
-            const payload: Omit<MembershipItem, 'id'> = {
-              name,
-              value: defaultMemberValue,
-              status: 'pendente',
-              lastPayment: 'â€”',
-              created_at: new Date().toISOString(),
-              month: currentMonth,
-            };
-            const id = await addMembership(payload);
-            return { id, ...payload };
-          })
-        );
-        if (!active) return;
-        setMembers([...data, ...created]);
-      } else {
-        setMembers(data);
-      }
+      setMembers(data);
     };
     load()
       .catch(() => {})
@@ -587,5 +562,7 @@ export default function MensalidadesPage() {
     </AppShell>
   );
 }
+
+
 
 
