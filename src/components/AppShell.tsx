@@ -40,6 +40,17 @@ const navItems = [
     ),
   },
   {
+    key: 'doacoes',
+    label: 'Doações',
+    href: '/financeiro/doacoes',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M12 21s-6-4.35-6-9a6 6 0 0 1 12 0c0 4.65-6 9-6 9z" />
+        <path d="M9.5 11a2.5 2.5 0 0 1 5 0" />
+      </svg>
+    ),
+  },
+  {
     key: 'mensalidades',
     label: 'Mensalidades',
     href: '/financeiro/mensalidades',
