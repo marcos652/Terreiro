@@ -379,7 +379,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                   <div className="mt-1 h-1 w-16 rounded-full bg-gradient-to-r from-amber-400 via-amber-200 to-transparent" />
                   {subtitle && <p className="mt-2 text-sm text-ink-500">{subtitle}</p>}
                   <div className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-ink-400">
-                    {todayLabel} â€¢ MarÃ­lia / SP â€¢ Templo de Umbanda Luz e Fé
+                  {todayLabel} • Marília / SP • Templo de Umbanda Luz e Fé
                   </div>
                 </div>
               </div>
