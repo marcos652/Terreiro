@@ -20,7 +20,7 @@ export default function DoacoesPage() {
   useEffect(() => {
     getCashTransactions()
       .then((data) => {
-        setTransactions(data.filter((t) => (t.method || '').toLowerCase() === 'doa��o'));
+        setTransactions(data.filter((t) => (t.method || '').toLowerCase() === 'Doação'));
       })
       .finally(() => setLoading(false));
   }, []);
@@ -37,10 +37,11 @@ export default function DoacoesPage() {
     setSaving(true);
     try {
       const payload: Omit<CashTransaction, 'id'> = {
-        label: `Doa��o - ${donor.trim()}`,
+        label: `Doação - ${donor.trim()}`,
         amount,
         type: 'entrada',
-        method: 'Doa��o',
+        method: 'Doação',
+        date: new Date().toISOString().slice(0, 10),
         created_at: new Date().toISOString(),
       };
       const id = await addCashTransaction(payload, profile?.email);
@@ -53,10 +54,10 @@ export default function DoacoesPage() {
   };
 
   return (
-    <AppShell title="Doa��es" subtitle="Registre entradas de doadores e atualize o caixa.">
+    <AppShell title="Doações" subtitle="Registre entradas de doadores e atualize o caixa.">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_0.9fr]">
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
-          <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Nova doa��o</div>
+          <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Nova Doação</div>
           <div className="mt-3 flex flex-col gap-3">
             <input
               className="rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
@@ -80,11 +81,11 @@ export default function DoacoesPage() {
               disabled={!canEdit || saving || !donor.trim() || !value}
               className="w-full rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
             >
-              {saving ? 'Registrando...' : 'Registrar doa��o'}
+              {saving ? 'Registrando...' : 'Registrar Doação'}
             </button>
             {!canEdit && (
               <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                Voc� n�o tem permiss�o para registrar doa��es.
+                Você n�o tem permiss�o para registrar Doações.
               </div>
             )}
           </div>
@@ -95,16 +96,16 @@ export default function DoacoesPage() {
           <div className="mt-2 text-3xl font-semibold text-emerald-600">
             R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div className="mt-4 text-xs text-ink-400">Somat�rio de todas as doa��es registradas.</div>
+          <div className="mt-4 text-xs text-ink-400">Somatório de todas as Doações registradas.</div>
         </div>
       </div>
 
       <div className="mt-6 rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
-        <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Hist�rico</div>
+        <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Histórico</div>
         {loading ? (
           <div className="py-6 text-sm text-ink-400">Carregando...</div>
         ) : transactions.length === 0 ? (
-          <div className="py-6 text-sm text-ink-400">Nenhuma doa��o registrada.</div>
+          <div className="py-6 text-sm text-ink-400">Nenhuma Doação registrada.</div>
         ) : (
           <div className="mt-3 space-y-2">
             {transactions.map((t) => (
@@ -122,4 +123,5 @@ export default function DoacoesPage() {
     </AppShell>
   );
 }
+
 
