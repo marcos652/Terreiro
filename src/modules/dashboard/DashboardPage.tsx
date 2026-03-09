@@ -481,7 +481,7 @@ const DashboardPage = () => {
               <div>
                 <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Tendencia</div>
                 <div className="flex items-center gap-2">
-                  <div className="text-lg font-semibold text-ink-900">BalanÃ§o do Caixa</div>
+                  <div className="text-lg font-semibold text-ink-900">Balanço do Caixa</div>
                   <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-purple-700">
                     Roxo
                   </span>
