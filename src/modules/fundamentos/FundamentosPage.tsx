@@ -16,6 +16,8 @@ export default function FundamentosPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ category: '', title: '', content: '' });
   const [categoryDrafts, setCategoryDrafts] = useState<Record<string, { title: string; content: string }>>({});
+  const [modalCategory, setModalCategory] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
   const { profile } = useAuth();
   const normalizedRole = (profile?.role || '').trim().toUpperCase();
   const isMaster = normalizedRole === 'MASTER';
