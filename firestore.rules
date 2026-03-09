@@ -81,6 +81,12 @@ service cloud.firestore {
       allow write: if hasPermission("cantigas");
     }
 
+    // Fundamentos
+    match /fundamentals/{docId} {
+      allow read: if request.auth != null;
+      allow write: if hasPermission("fundamentos");
+    }
+
     // Ações / pendências
     match /action_items/{docId} {
       allow read: if request.auth != null;

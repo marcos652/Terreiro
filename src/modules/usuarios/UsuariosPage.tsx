@@ -13,6 +13,7 @@ const menuPermissions = [
   { key: 'mensalidades', label: 'Mensalidades' },
   { key: 'eventos', label: 'Eventos' },
   { key: 'cantigas', label: 'Cantigas' },
+  { key: 'fundamentos', label: 'Fundamentos' },
   { key: 'youtube', label: 'Youtube Macumba' },
   { key: 'estoque', label: 'Estoque' },
   { key: 'usuarios', label: 'Usuários' },

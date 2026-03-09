@@ -84,6 +84,18 @@ const navItems = [
     ),
   },
   {
+    key: 'fundamentos',
+    label: 'Fundamentos',
+    href: '/fundamentos',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M4 5h16v14H4z" />
+        <path d="M4 9h16" />
+        <path d="M9 5v14" />
+      </svg>
+    ),
+  },
+  {
     key: 'youtube',
     label: 'Youtube Macumba',
     href: '/youtube-macumba',

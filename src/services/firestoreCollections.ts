@@ -26,6 +26,7 @@ export const COLLECTIONS = {
   MEMBERSHIPS: 'memberships',
   FOCUS_NOTES: 'focus_notes',
   CANTIGAS: 'cantigas',
+  FUNDAMENTALS: 'fundamentals',
   ACTION_ITEMS: 'action_items',
   LOGS: 'logs',
 } as const;
@@ -37,6 +38,8 @@ export const eventsCollection = createCollection<EventItem>(COLLECTIONS.EVENTS);
 export const transactionsCollection = createCollection<CashTransaction>(COLLECTIONS.CASH_TRANSACTIONS);
 export const membershipsCollection = createCollection<MembershipItem>(COLLECTIONS.MEMBERSHIPS);
 export const cantigasCollection = createCollection<CantigaItem>(COLLECTIONS.CANTIGAS);
+// Fundamentals reutiliza estrutura de pastas/textos semelhante a cantigas
+export const fundamentalsCollection = createCollection(COLLECTIONS.FUNDAMENTALS);
 
 export type LogEntry = {
   id?: string;
