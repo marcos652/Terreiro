@@ -69,7 +69,7 @@ const DashboardPage = () => {
   const [hasStockData, setHasStockData] = useState(false);
   const [cashSeries, setCashSeries] = useState<number[]>([]);
   const [cashLabels, setCashLabels] = useState<string[]>([]);
-  const [nextEvent, setNextEvent] = useState<{ date: string; time: string; title: string } | null>(null);
+  const [nextEvent, setNextEvent] = useState<{ date: string; time: string; title: string; status?: string } | null>(null);
   const [clearingCash, setClearingCash] = useState(false);
   const [focusHistory, setFocusHistory] = useState<FocusItem[]>([]);
   const [agendaList, setAgendaList] = useState<AgendaItem[]>([]);
