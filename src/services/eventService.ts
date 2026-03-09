@@ -1,4 +1,4 @@
-import { db } from './firebase';
+﻿import { db } from './firebase';
 import { collection, addDoc, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { COLLECTIONS } from './firestoreCollections';
 import { logService } from './logService';
@@ -21,7 +21,13 @@ export async function addEvent(item: Omit<EventItem, 'id'>, userEmail?: string) 
 
 export async function getEvents() {
   const querySnapshot = await getDocs(collection(db, COLLECTIONS.EVENTS));
-  return querySnapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as EventItem));
+  return querySnapshot.docs
+    .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as EventItem))
+    .sort((a, b) => {
+      const da = new Date(a.created_at || a.date || '').getTime();
+      const db = new Date(b.created_at || b.date || '').getTime();
+      return db - da; // mais recente primeiro
+    });
 }
 
 export async function updateEvent(id: string, data: Partial<EventItem>, userEmail?: string) {
@@ -38,3 +44,4 @@ export async function deleteEvent(id: string, userEmail?: string) {
   await deleteDoc(docRef);
   if (userEmail) await logService.addLog(userEmail, `Excluiu evento: ${id}`);
 }
+

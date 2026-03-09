@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '@contexts/AuthContext';
 import { useTestFirestore } from './useTestFirestore';
@@ -102,7 +102,7 @@ const DashboardPage = () => {
         const amountLabel =
           amountValue > 0
             ? `${data.type === 'entrada' ? '+' : '-'} R$ ${formatBRL(amountValue)}`
-            : '—';
+            : 'â€”';
         if (data.type === 'entrada') entradas += Number(data.amount || 0);
         if (data.type === 'saida') saidas += Number(data.amount || 0);
         const dateLabel = (data as { date?: string }).date || '';
@@ -167,8 +167,8 @@ const DashboardPage = () => {
         setNextEvent(null);
         return;
       }
-      const data = docSnap.data() as { date: string; time: string; title: string };
-      setNextEvent({ date: data.date, time: data.time, title: data.title });
+      const data = docSnap.data() as { date: string; time: string; title: string; status?: string };
+      setNextEvent({ date: data.date, time: data.time, title: data.title, status: data.status });
     });
 
     const agendaQuery = query(collection(db, COLLECTIONS.EVENTS), orderBy('date', 'asc'), limit(4));
@@ -420,7 +420,7 @@ const DashboardPage = () => {
         <div id="card-caixa" className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Caixa atual</div>
           <div className="mt-2 text-2xl font-semibold text-ink-900">
-            {hasCashData ? `R$ ${formatBRL(cashTotal)}` : '—'}
+            {hasCashData ? `R$ ${formatBRL(cashTotal)}` : 'â€”'}
           </div>
           <div className="mt-3 flex items-center gap-2 text-xs text-ink-500">
             <span className={`rounded-full px-2 py-1 ${cashStatus.className}`}>{cashStatus.label}</span>
@@ -430,7 +430,7 @@ const DashboardPage = () => {
         <div id="card-mensalidades" className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Mensalidades</div>
           <div className="mt-2 text-2xl font-semibold text-ink-900">
-            {hasMembershipData ? `R$ ${formatBRL(membersPaid.paid)}` : '—'}
+            {hasMembershipData ? `R$ ${formatBRL(membersPaid.paid)}` : 'â€”'}
           </div>
           <div className="mt-3 h-2 w-full rounded-full bg-ink-100">
             <div
@@ -465,7 +465,7 @@ const DashboardPage = () => {
         <div id="card-estoque-critico" className="rounded-2xl border border-ink-100 bg-white p-8 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Estoque critico</div>
           <div className="mt-2 text-2xl font-semibold text-ink-900">
-            {hasStockData ? `${criticalStock} itens` : '—'}
+            {hasStockData ? `${criticalStock} itens` : 'â€”'}
           </div>
           <div className="mt-2 text-sm text-ink-500">Sem informacoes</div>
           <div className="mt-2 text-xs text-ink-500">
@@ -481,7 +481,7 @@ const DashboardPage = () => {
               <div>
                 <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Tendencia</div>
                 <div className="flex items-center gap-2">
-                  <div className="text-lg font-semibold text-ink-900">Balanço do Caixa</div>
+                  <div className="text-lg font-semibold text-ink-900">BalanÃ§o do Caixa</div>
                   <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-purple-700">
                     Roxo
                   </span>
@@ -540,7 +540,7 @@ const DashboardPage = () => {
                       item.tone === 'pos' ? 'text-emerald-600' : item.tone === 'neg' ? 'text-rose-500' : 'text-ink-500'
                     }`}
                   >
-                    {item.amount || '—'}
+                    {item.amount || 'â€”'}
                   </span>
                 </div>
               ))}
@@ -714,10 +714,18 @@ const DashboardPage = () => {
                   <div className="flex items-center gap-2">
                     <span
                       className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
-                        event.status === 'confirmado' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                        event.status === 'confirmado'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : event.status === 'cancelado'
+                          ? 'bg-rose-100 text-rose-700'
+                          : 'bg-amber-100 text-amber-700'
                       }`}
                     >
-                      {event.status === 'confirmado' ? 'Confirmado' : 'Pendente'}
+                      {event.status === 'confirmado'
+                        ? 'Confirmado'
+                        : event.status === 'cancelado'
+                        ? 'Cancelado'
+                        : 'Pendente'}
                     </span>
                   </div>
                 </div>
@@ -736,3 +744,4 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
+

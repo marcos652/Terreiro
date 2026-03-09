@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Timestamp, collection, getDocs, orderBy, query, deleteDoc } from 'firebase/firestore';
 import AppShell from '@components/AppShell';
 import { db } from '@services/firebase';
@@ -102,3 +102,4 @@ export default function LogsPage() {
     </AppShell>
   );
 }
+
