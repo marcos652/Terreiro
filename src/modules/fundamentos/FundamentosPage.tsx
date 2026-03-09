@@ -1,4 +1,19 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿  // Remove todos os fundamentos de uma categoria (pasta)
+  const handleRemoveCategory = async (category: string) => {
+    const confirmed = window.confirm(`Remover a pasta "${category}" e todo o seu conteúdo?`);
+    if (!confirmed) return;
+    setItems((prev) => prev.filter((item) => item.category !== category));
+    try {
+      await auth?.currentUser?.getIdToken(true);
+      // Remove todos os fundamentos dessa categoria do Firestore
+      const toDelete = items.filter((item) => item.category === category && item.id);
+      await Promise.all(toDelete.map((item) => deleteFundamental(item.id as string, profile?.email)));
+    } catch (error) {
+      console.error('Erro ao remover pasta e fundamentos', error);
+    }
+    setModalCategory(null);
+  };
+import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
 import { useAuth } from '@contexts/AuthContext';
 import {
@@ -24,6 +39,22 @@ export default function FundamentosPage() {
   const isEditor = normalizedRole === 'EDITOR';
   const permissions = profile?.permissions || [];
   const canEdit = isMaster || (isEditor && permissions.includes('fundamentos'));
+
+  // Remove todos os fundamentos de uma categoria (pasta)
+  const handleRemoveCategory = async (category: string) => {
+    const confirmed = window.confirm(`Remover a pasta "${category}" e todo o seu conteúdo?`);
+    if (!confirmed) return;
+    setItems((prev) => prev.filter((item) => item.category !== category));
+    try {
+      await auth?.currentUser?.getIdToken(true);
+      // Remove todos os fundamentos dessa categoria do Firestore
+      const toDelete = items.filter((item) => item.category === category && item.id);
+      await Promise.all(toDelete.map((item) => deleteFundamental(item.id as string, profile?.email)));
+    } catch (error) {
+      console.error('Erro ao remover pasta e fundamentos', error);
+    }
+    setModalCategory(null);
+  };
 
   useEffect(() => {
     let active = true;
@@ -230,6 +261,13 @@ export default function FundamentosPage() {
                   className="rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-700 hover:border-ink-300 disabled:opacity-60"
                 >
                   Renomear
+                </button>
+                <button
+                  onClick={() => handleRemoveCategory(modalCategory)}
+                  disabled={!canEdit}
+                  className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300 disabled:opacity-60"
+                >
+                  Excluir pasta
                 </button>
                 <button
                   onClick={() => setModalCategory(null)}
