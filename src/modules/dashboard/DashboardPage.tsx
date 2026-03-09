@@ -36,7 +36,7 @@ type AgendaItem = {
   title: string;
   date: string;
   time: string;
-  status: 'confirmado' | 'pendente';
+  status: 'confirmado' | 'pendente' | 'cancelado';
   leader?: string;
 };
 
