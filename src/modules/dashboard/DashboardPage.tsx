@@ -160,7 +160,7 @@ const DashboardPage = () => {
       setCriticalStock(critical);
     });
 
-    const eventsQuery = query(collection(db, COLLECTIONS.EVENTS), orderBy('date', 'asc'), limit(1));
+    const eventsQuery = query(collection(db, COLLECTIONS.EVENTS), orderBy('created_at', 'desc'), limit(1));
     const eventsUnsub = onSnapshot(eventsQuery, (snapshot) => {
       const docSnap = snapshot.docs[0];
       if (!docSnap) {
@@ -171,7 +171,7 @@ const DashboardPage = () => {
       setNextEvent({ date: data.date, time: data.time, title: data.title, status: data.status });
     });
 
-    const agendaQuery = query(collection(db, COLLECTIONS.EVENTS), orderBy('date', 'asc'), limit(4));
+    const agendaQuery = query(collection(db, COLLECTIONS.EVENTS), orderBy('created_at', 'desc'), limit(4));
     const agendaUnsub = onSnapshot(agendaQuery, (snapshot) => {
       const list: AgendaItem[] = snapshot.docs.map((docSnap) => {
         const data = docSnap.data() as AgendaItem;

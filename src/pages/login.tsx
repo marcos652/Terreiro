@@ -244,7 +244,26 @@ export default function LoginPage() {
               Seja bem-vindo, que os orixás te abençoem!
             </h1>
             <div className="flex flex-col gap-3 rounded-3xl bg-white/90 p-5 shadow-[0_30px_90px_-40px_rgba(15,23,42,0.6)] ring-1 ring-ink-100/80">
-              <div className="text-[11px] uppercase tracking-[0.28em] text-amber-500">Próxima gira</div>
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] uppercase tracking-[0.28em] text-amber-500">Próxima gira</div>
+                {nextEvent && (
+                  <span
+                    className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
+                      nextEvent.status === 'confirmado'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : nextEvent.status === 'cancelado'
+                        ? 'bg-rose-100 text-rose-700'
+                        : 'bg-amber-100 text-amber-700'
+                    }`}
+                  >
+                    {nextEvent.status === 'confirmado'
+                      ? 'Confirmado'
+                      : nextEvent.status === 'cancelado'
+                      ? 'Cancelado'
+                      : 'Pendente'}
+                  </span>
+                )}
+              </div>
               <div className="text-xl font-semibold text-ink-900">
                 {nextEvent ? `${nextEvent.date} • ${nextEvent.time || 'horário a confirmar'}` : 'Sem data definida'}
               </div>
