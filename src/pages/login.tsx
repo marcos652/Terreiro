@@ -7,7 +7,10 @@ import { auth, firebaseConfig, firebaseConfigMissing } from '@services/firebase'
 import { getUserById, upsertUser } from '@services/userService';
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getEvents, EventItem } from '@services/eventService';
+import { EventItem } from '@services/eventService';
+import { db } from '@services/firebase';
+import { collection, onSnapshot, orderBy, query, limit } from 'firebase/firestore';
+import { COLLECTIONS } from '@services/firestoreCollections';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -31,7 +34,6 @@ export default function LoginPage() {
     const parseDateTime = (event: EventItem) => {
       const raw = (event.date || '').trim();
       const timeRaw = (event.time || '').trim();
-
       // Formato dd/mm/aaaa
       if (raw.includes('/')) {
         const [day, month, year] = raw.split('/').map(Number);
@@ -54,32 +56,17 @@ export default function LoginPage() {
       return null;
     };
 
-    getEvents()
-      .then((events) => {
-        const candidates = events.filter((e) => e.status !== 'cancelado');
-        if (candidates.length === 0) return setNextEvent(null);
-
-        const withDate = candidates.map((e) => ({
-          ...e,
-          dateObj: parseDateTime(e),
-        }));
-
-        const valid = withDate.filter((e) => e.dateObj && !Number.isNaN(e.dateObj.getTime())) as (EventItem & {
-          dateObj: Date;
-        })[];
-
-        const now = new Date();
-        const upcoming = valid
-          .filter((e) => e.dateObj >= now)
-          .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
-
-        const chosen = upcoming[0]
-          || valid.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime())[0]
-          || candidates[0];
-
-        setNextEvent(chosen);
-      })
-      .catch(() => setNextEvent(null));
+    const q = query(collection(db, COLLECTIONS.EVENTS), orderBy('created_at', 'desc'), limit(1));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const docSnap = snapshot.docs[0];
+      if (!docSnap) {
+        setNextEvent(null);
+        return;
+      }
+      const data = docSnap.data() as EventItem;
+      setNextEvent({ ...data });
+    }, () => setNextEvent(null));
+    return () => unsub();
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
