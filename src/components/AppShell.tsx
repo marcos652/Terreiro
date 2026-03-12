@@ -200,6 +200,13 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const checkDevtools = () => {
+      // Em mobile o outer/inner varia por causa da barra do navegador; evita falso positivo
+      const isMobileLike =
+        (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || window.innerWidth < 900;
+      if (isMobileLike) {
+        setDevtoolsOpen(false);
+        return;
+      }
       const threshold = 150;
       const widthDiff = window.outerWidth - window.innerWidth;
       const heightDiff = window.outerHeight - window.innerHeight;
