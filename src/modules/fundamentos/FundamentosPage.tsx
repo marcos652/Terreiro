@@ -27,7 +27,7 @@ export default function FundamentosPage() {
 
   // Remove todos os fundamentos de uma categoria (pasta)
   const handleRemoveCategory = async (category: string) => {
-    const confirmed = window.confirm(`Remover a pasta "${category}" e todo o seu conteúdo?`);
+    const confirmed = window.confirm(`Remover a pasta "${category}" e todo o seu conteÃºdo?`);
     if (!confirmed) return;
     setItems((prev) => prev.filter((item) => item.category !== category));
     try {
@@ -143,7 +143,7 @@ export default function FundamentosPage() {
 
   const handleRemove = async (item: FundamentalItem) => {
     if (!item.id) return;
-    const confirmed = window.confirm(`Remover conteúdo de "${item.category}"?`);
+    const confirmed = window.confirm(`Remover conteÃºdo de "${item.category}"?`);
     if (!confirmed) return;
     setItems((prev) => prev.filter((entry) => entry.id !== item.id));
     try {
@@ -172,7 +172,7 @@ export default function FundamentosPage() {
     >
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_2fr]">
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
-          <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Novo conteúdo</div>
+          <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Novo conteÃºdo</div>
           <div className="mt-4 flex flex-col gap-3">
             <input
               className="rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
@@ -183,7 +183,7 @@ export default function FundamentosPage() {
             />
             <input
               className="rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
-              placeholder="Título (opcional)"
+              placeholder="TÃ­tulo (opcional)"
               value={form.title}
               onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
               disabled={!canEdit}
@@ -269,7 +269,7 @@ export default function FundamentosPage() {
                   <div key={item.id} className="rounded-xl border border-ink-100 bg-ink-50/70 p-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-sm font-semibold text-ink-900">{item.title || 'Sem título'}</div>
+                        <div className="text-sm font-semibold text-ink-900">{item.title || 'Sem tÃ­tulo'}</div>
                         <div className="text-xs text-ink-400">{new Date(item.created_at).toLocaleDateString('pt-BR')}</div>
                       </div>
                       <button
@@ -294,14 +294,14 @@ export default function FundamentosPage() {
                 <div className="text-[11px] uppercase tracking-[0.2em] text-ink-400">Adicionar texto</div>
                 <input
                   className="mt-2 w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
-                  placeholder="Título (opcional)"
+                  placeholder="TÃ­tulo (opcional)"
                   value={categoryDrafts[modalCategory]?.title || ''}
                   onChange={(e) => setCategoryDrafts((prev) => ({ ...prev, [modalCategory]: { ...(prev[modalCategory] || {}), title: e.target.value } }))}
                   disabled={!canEdit}
                 />
                 <textarea
                   className="mt-2 min-h-[120px] w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
-                  placeholder="Conteúdo"
+                  placeholder="ConteÃºdo"
                   value={categoryDrafts[modalCategory]?.content || ''}
                   onChange={(e) => setCategoryDrafts((prev) => ({ ...prev, [modalCategory]: { ...(prev[modalCategory] || {}), content: e.target.value } }))}
                   disabled={!canEdit}
