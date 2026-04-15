@@ -492,8 +492,8 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                   aria-label="Fechar menu"
                   onClick={() => setMobileOpen(false)}
                 />
-                <div className="fixed inset-y-0 left-0 z-50 w-72 bg-black text-white shadow-2xl md:hidden">
-                  <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
+                <div className="fixed inset-y-0 left-0 z-50 w-72 bg-black text-white shadow-2xl md:hidden flex flex-col">
+                  <div className="flex items-center justify-between px-6 py-5 border-b border-white/10 flex-shrink-0">
                     <div className="flex items-center gap-3">
                       <div className="relative h-10 w-10 overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/20">
                         <Image src="/logo-templo.svg" alt="Templo de Umbanda Luz e Fé" fill sizes="40px" className="object-contain" priority />
@@ -514,7 +514,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                       </svg>
                     </button>
                   </div>
-                  <nav className="flex flex-col gap-1.5 px-4 py-4 text-base">
+                  <nav className="flex-1 overflow-y-auto flex flex-col gap-1.5 px-4 py-4 text-base">
                     {allowedNavItems.map((item) => {
                       const active = router.pathname === item.href;
                       return (
@@ -522,7 +522,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                           key={item.href}
                           href={item.href}
                           onClick={() => setMobileOpen(false)}
-                          className={`flex items-center gap-4 rounded-2xl px-5 py-3.5 transition ${
+                          className={`flex items-center gap-4 rounded-2xl px-5 py-3.5 transition flex-shrink-0 ${
                             active ? 'bg-white text-black shadow-sm' : 'text-gray-100 hover:bg-white/10'
                           }`}
                         >
