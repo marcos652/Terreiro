@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import dynamic from "next/dynamic";
 
 const ReactPlayer = dynamic(() => import("react-player/youtube"), { ssr: false });
@@ -80,25 +80,43 @@ export default function YoutubeAudioSearch({ variant = "compact" }: YoutubeAudio
 
       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
         {results.map((track) => (
-          <button
+          <div
             key={track.id}
-            onClick={() => handleSelect(track)}
-            className={`flex items-center gap-3 rounded-xl border px-3 py-2 text-left transition ${
+            className={`flex items-center gap-3 rounded-xl border px-3 py-2 transition ${
               current?.id === track.id ? "border-ink-400 bg-ink-50" : "border-ink-100 hover:border-ink-200"
             }`}
           >
-            {track.thumb ? (
-              <img src={track.thumb} alt="" className="h-12 w-12 rounded-lg object-cover" />
-            ) : (
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-ink-100 text-xs text-ink-500">
-                Sem capa
+            <button
+              onClick={() => handleSelect(track)}
+              className="flex flex-1 items-center gap-3 text-left"
+            >
+              {track.thumb ? (
+                <img src={track.thumb} alt="" className="h-12 w-12 rounded-lg object-cover flex-shrink-0" />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-ink-100 text-xs text-ink-500 flex-shrink-0">
+                  Sem capa
+                </div>
+              )}
+              <div className="flex flex-col text-sm overflow-hidden">
+                <span className="font-semibold text-ink-900 line-clamp-2">{track.title}</span>
+                <span className="text-ink-400">{track.channel}</span>
               </div>
-            )}
-            <div className="flex flex-col text-sm">
-              <span className="font-semibold text-ink-900 line-clamp-2">{track.title}</span>
-              <span className="text-ink-400">{track.channel}</span>
-            </div>
-          </button>
+            </button>
+            <a
+              href={`https://www.y2mate.com/youtube/${track.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-ink-100 text-ink-400 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-600 transition"
+              title="Baixar MP3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </a>
+          </div>
         ))}
         {!loading && results.length === 0 && (
           <div className="rounded-xl border border-dashed border-ink-100 bg-ink-50/70 px-3 py-3 text-sm text-ink-400">
@@ -136,9 +154,25 @@ export default function YoutubeAudioSearch({ variant = "compact" }: YoutubeAudio
           />
         </div>
         {current && (
-          <div className="mt-2 text-sm text-ink-700">
-            <div className="font-semibold">{current.title}</div>
-            <div className="text-ink-400">{current.channel}</div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <div className="text-sm text-ink-700 overflow-hidden">
+              <div className="font-semibold truncate">{current.title}</div>
+              <div className="text-ink-400">{current.channel}</div>
+            </div>
+            <a
+              href={`https://www.y2mate.com/youtube/${current.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-100 transition flex-shrink-0"
+              title="Baixar MP3"
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Baixar
+            </a>
           </div>
         )}
         {!current && <div className="text-xs text-ink-400">Selecione um resultado para tocar.</div>}
