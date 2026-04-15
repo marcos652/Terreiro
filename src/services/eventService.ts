@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, addDoc, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { COLLECTIONS } from './firestoreCollections';
 import { logService } from './logService';
 
@@ -20,7 +20,8 @@ export async function addEvent(item: Omit<EventItem, 'id'>, userEmail?: string) 
 }
 
 export async function getEvents() {
-  const querySnapshot = await getDocs(collection(db, COLLECTIONS.EVENTS));
+  const q = query(collection(db, COLLECTIONS.EVENTS), orderBy('created_at', 'desc'));
+  const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as EventItem));
 }
 
