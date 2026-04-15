@@ -298,7 +298,7 @@ export default function ChatPage() {
 
   return (
     <AppShell title="Chat" subtitle="Comunicação interna em tempo real.">
-      <div className="flex gap-0 overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-floating" style={{ height: 'calc(100vh - 200px)', minHeight: 500 }}>
+      <div className="flex gap-0 overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-floating" style={{ height: 'calc(100dvh - 140px)', minHeight: 400 }}>
 
         {/* ── LEFT SIDEBAR ── */}
         <div className={`${showSidebar ? 'flex' : 'hidden md:flex'} w-80 flex-shrink-0 flex-col border-r border-ink-100`}>
