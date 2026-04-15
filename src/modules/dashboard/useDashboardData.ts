@@ -130,16 +130,28 @@ export function useDashboardData(user: FirebaseUser | null) {
       setActivity(recentActivity.slice(0, 5));
     });
 
-    // Memberships
+    // Memberships — somente mês atual
     const membershipUnsub = onSnapshot(collection(db, COLLECTIONS.MEMBERSHIPS), (snapshot) => {
       let total = 0;
       let paid = 0;
-      setHasMembershipData(!snapshot.empty);
+      const now = new Date();
+      const currentMonth = `${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+      let hasCurrentMonth = false;
+
       snapshot.forEach((docSnap) => {
-        const data = docSnap.data() as { status: 'pago' | 'pendente'; value: number };
+        const data = docSnap.data() as { status: 'pago' | 'pendente'; value: number; referenceMonth?: string; created_at?: string };
+        // Filtrar apenas mensalidades do mês atual
+        const ref = data.referenceMonth || '';
+        const created = data.created_at || '';
+        const createdMonth = created ? `${created.substring(5, 7)}/${created.substring(0, 4)}` : '';
+        if (ref !== currentMonth && createdMonth !== currentMonth) return;
+
+        hasCurrentMonth = true;
         total += Number(data.value || 0);
         if (data.status === 'pago') paid += Number(data.value || 0);
       });
+
+      setHasMembershipData(hasCurrentMonth);
       setMembersPaid({ paid, total });
     });
 
