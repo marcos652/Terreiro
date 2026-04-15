@@ -1,7 +1,10 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@services/firebase';
-import { getUserById, User as AppUser } from '@services/userService';
+import { auth, db } from '@services/firebase';
+import { User as AppUser } from '@services/userService';
+import { isBootstrapMasterUid } from '@services/constants';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { COLLECTIONS } from '@services/firestoreCollections';
 
 interface AuthContextProps {
   user: User | null;
@@ -21,42 +24,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
-    const BOOTSTRAP_UID = 'rpdLNx3X4CZhFvB6O9bvXbFA72y1';
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (!user) {
+    let unsubProfile: (() => void) | null = null;
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+
+      // Limpa listener anterior
+      if (unsubProfile) { unsubProfile(); unsubProfile = null; }
+
+      if (!firebaseUser) {
         setProfile(null);
         setLoading(false);
         return;
       }
-      try {
-        const data = await getUserById(user.uid);
-        // normaliza role para evitar case mismatch e cria fallback para bootstrap master
-        if (data) {
+
+      // Listener em tempo real no documento do usuário
+      const userDocRef = doc(db, COLLECTIONS.USERS, firebaseUser.uid);
+      unsubProfile = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data() as any;
           const normalizedRole = (data.role || '').trim().toUpperCase() as AppUser['role'];
-          const normalized: AppUser = { ...data, role: normalizedRole };
-          setProfile(normalized);
-        } else if (user.uid === BOOTSTRAP_UID) {
-          // garante que o master de bootstrap tenha perfil mesmo sem documento
-          const synthetic: AppUser = {
-            id: user.uid,
-            name: user.displayName || 'Bootstrap Master',
-            email: user.email || 'bootstrap@local',
+          setProfile({
+            id: docSnap.id,
+            name: data.name || '',
+            email: data.email || '',
+            role: normalizedRole,
+            status: data.status || 'PENDENTE',
+            permissions: data.permissions,
+            photoURL: data.photoURL,
+            created_at: data.created_at || '',
+          });
+        } else if (isBootstrapMasterUid(firebaseUser.uid)) {
+          setProfile({
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || 'Bootstrap Master',
+            email: firebaseUser.email || 'bootstrap@local',
             role: 'MASTER',
             status: 'APROVADO',
             created_at: new Date().toISOString(),
-            permissions: undefined,
-          };
-          setProfile(synthetic);
+          });
         } else {
           setProfile(null);
         }
-      } finally {
         setLoading(false);
-      }
+      });
     });
-    return () => unsubscribe();
+
+    return () => {
+      unsubscribe();
+      if (unsubProfile) unsubProfile();
+    };
   }, []);
 
   return (

@@ -28,6 +28,12 @@ export const COLLECTIONS = {
   CANTIGAS: 'cantigas',
   ACTION_ITEMS: 'action_items',
   LOGS: 'logs',
+  DOACOES: 'doacoes',
+  CHAT_MESSAGES: 'chat_messages',
+  GALERIA: 'galeria',
+  FUNDAMENTOS: 'fundamentos',
+  CHAT_GROUPS: 'chat_groups',
+  USER_PRESENCE: 'user_presence',
 } as const;
 
 // Coleções tipadas

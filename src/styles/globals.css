@@ -4,9 +4,48 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── CSS Custom Properties (Design Tokens) ── */
+:root {
+  --color-bg-primary: #ffffff;
+  --color-bg-page: #f7fbff;
+  --color-bg-card: #ffffff;
+  --color-bg-card-hover: #eff6ff;
+  --color-bg-input: #ffffff;
+  --color-bg-sidebar: #000000;
+  --color-bg-muted: #f4f6f8;
+  --color-text-primary: #111827;
+  --color-text-secondary: #4b5563;
+  --color-text-muted: #9aa4b2;
+  --color-text-on-sidebar: #f5f5f5;
+  --color-border: #e3e8ef;
+  --color-border-light: rgba(227, 232, 239, 0.6);
+  --color-shadow-floating: rgba(71, 85, 105, 0.55);
+  --color-shadow-floating-deep: rgba(100, 116, 139, 0.45);
+}
+
+html.theme-dark {
+  color-scheme: dark;
+  --color-bg-primary: #0c0c14;
+  --color-bg-page: #0c0c14;
+  --color-bg-card: #16162a;
+  --color-bg-card-hover: #1e1e3a;
+  --color-bg-input: #12122a;
+  --color-bg-sidebar: #0a0a18;
+  --color-bg-muted: #1a1a32;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #e0e0f0;
+  --color-text-muted: #b0b0cc;
+  --color-text-on-sidebar: #f5f5f5;
+  --color-border: #2e2e50;
+  --color-border-light: rgba(46, 46, 80, 0.6);
+  --color-shadow-floating: rgba(0, 0, 0, 0.8);
+  --color-shadow-floating-deep: rgba(0, 0, 0, 0.6);
+}
+
+/* ── Base Styles ── */
 body {
-  background: #ffffff;
-  color: #111827;
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
   font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui;
   overflow-x: hidden;
 }
@@ -26,99 +65,154 @@ canvas {
   height: auto;
 }
 
-html:not(.theme-dark) [class*='bg-sand-50'] {
-  background-color: #f7fbff !important;
-}
+/* ── Dark Mode Overrides ──
+   Using targeted selectors with CSS variables instead of nuclear !important overrides.
+   This preserves colored badges, status pills, and buttons in dark mode.
+*/
 
-html:not(.theme-dark) [class*='shadow-floating'][class*='bg-white'] {
-  background-color: #eff6ff !important;
-  border-color: #bfdbfe !important;
-}
+/* Page-level backgrounds */
+html.theme-dark .bg-sand-50 { background-color: var(--color-bg-page) !important; }
+html.theme-dark .bg-white { background-color: var(--color-bg-card) !important; }
+html.theme-dark .bg-white\/75 { background-color: rgba(22, 22, 42, 0.85) !important; }
+html.theme-dark .bg-white\/90 { background-color: rgba(22, 22, 42, 0.95) !important; }
+html.theme-dark .bg-white\/70 { background-color: rgba(22, 22, 42, 0.8) !important; }
 
-html.theme-dark {
-  color-scheme: dark;
-}
+/* Sidebar stays dark in both modes */
+html.theme-dark aside.bg-black { background-color: var(--color-bg-sidebar) !important; }
 
-html.theme-dark body {
-  background: #000000;
-  color: #ffffff;
-}
+/* Muted backgrounds */
+html.theme-dark .bg-ink-50 { background-color: var(--color-bg-muted) !important; }
+html.theme-dark .bg-ink-50\/50 { background-color: rgba(26, 26, 50, 0.6) !important; }
+html.theme-dark .bg-ink-50\/60 { background-color: rgba(26, 26, 50, 0.7) !important; }
+html.theme-dark .bg-ink-50\/70 { background-color: rgba(26, 26, 50, 0.8) !important; }
+html.theme-dark .bg-ink-50\/80 { background-color: rgba(26, 26, 50, 0.85) !important; }
+html.theme-dark .bg-ink-100 { background-color: #1e1e38 !important; }
+html.theme-dark .bg-ink-900 { background-color: #6366f1 !important; }
+html.theme-dark .hover\:bg-ink-700:hover { background-color: #818cf8 !important; }
+html.theme-dark .hover\:bg-ink-50:hover { background-color: #1e1e3a !important; }
 
-html.theme-dark [class*='bg-'] {
-  background-color: #000000 !important;
-}
+/* Text colors — VIBRANT */
+html.theme-dark .text-ink-900 { color: #ffffff !important; }
+html.theme-dark .text-ink-800 { color: #f0f0ff !important; }
+html.theme-dark .text-ink-700 { color: #e0e0f0 !important; }
+html.theme-dark .text-ink-600 { color: #d0d0e8 !important; }
+html.theme-dark .text-ink-500 { color: #b0b0cc !important; }
+html.theme-dark .text-ink-400 { color: #8888aa !important; }
+html.theme-dark .text-ink-300 { color: #7777aa !important; }
+html.theme-dark .text-white { color: #ffffff !important; }
 
-html.theme-dark [class*='hover:bg-']:hover {
-  background-color: #1a2742 !important;
-}
+/* Colored badges — make them POP in dark mode */
+html.theme-dark .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.2) !important; }
+html.theme-dark .text-emerald-700 { color: #6ee7b7 !important; }
+html.theme-dark .bg-emerald-500 { background-color: #10b981 !important; }
+html.theme-dark .text-emerald-500 { color: #6ee7b7 !important; }
+html.theme-dark .text-emerald-600 { color: #34d399 !important; }
 
-html.theme-dark [class*='from-'],
-html.theme-dark [class*='via-'],
-html.theme-dark [class*='to-'] {
-  --tw-gradient-from: #000000 !important;
-  --tw-gradient-stops: var(--tw-gradient-from), #000000 !important;
-  --tw-gradient-to: #000000 !important;
-}
+html.theme-dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.2) !important; }
+html.theme-dark .text-amber-700 { color: #fcd34d !important; }
+html.theme-dark .bg-amber-400 { background-color: #fbbf24 !important; }
+html.theme-dark .bg-amber-500 { background-color: #f59e0b !important; }
 
-html.theme-dark [class*='text-'] {
-  color: #f5f5f5 !important;
-}
+html.theme-dark .bg-rose-100 { background-color: rgba(244, 63, 94, 0.2) !important; }
+html.theme-dark .text-rose-700 { color: #fda4af !important; }
+html.theme-dark .text-rose-500 { color: #fb7185 !important; }
+html.theme-dark .text-rose-600 { color: #f43f5e !important; }
+html.theme-dark .bg-rose-400 { background-color: #fb7185 !important; }
 
-html.theme-dark [class*='placeholder:']::placeholder {
-  color: #9ca3af !important;
-}
+html.theme-dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.2) !important; }
+html.theme-dark .text-blue-700 { color: #93c5fd !important; }
+html.theme-dark .text-blue-500 { color: #60a5fa !important; }
+html.theme-dark .text-blue-600 { color: #3b82f6 !important; }
 
+html.theme-dark .bg-purple-100 { background-color: rgba(139, 92, 246, 0.2) !important; }
+html.theme-dark .text-purple-700 { color: #c4b5fd !important; }
+
+html.theme-dark .bg-gray-100 { background-color: rgba(107, 114, 128, 0.2) !important; }
+html.theme-dark .text-gray-600 { color: #d1d5db !important; }
+html.theme-dark .text-gray-500 { color: #9ca3af !important; }
+
+html.theme-dark .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.15) !important; }
+
+/* Borders */
+html.theme-dark .border-ink-100 { border-color: var(--color-border) !important; }
+html.theme-dark .border-ink-200 { border-color: #3a3a5c !important; }
+html.theme-dark .border-ink-300 { border-color: #4a4a6c !important; }
+html.theme-dark .border-gray-800 { border-color: #2e2e50 !important; }
+html.theme-dark .border-white { border-color: #2e2e50 !important; }
+html.theme-dark .border-white\/10 { border-color: rgba(255, 255, 255, 0.1) !important; }
+html.theme-dark .border-emerald-200 { border-color: rgba(16, 185, 129, 0.4) !important; }
+html.theme-dark .border-rose-200 { border-color: rgba(244, 63, 94, 0.4) !important; }
+html.theme-dark .border-amber-200 { border-color: rgba(245, 158, 11, 0.4) !important; }
+html.theme-dark .border-indigo-500 { border-color: #6366f1 !important; }
+html.theme-dark .bg-indigo-500 { background-color: #6366f1 !important; }
+
+/* Progress bar bg */
+html.theme-dark .bg-ink-100 { background-color: #1e1e38 !important; }
+
+/* Inputs */
 html.theme-dark input,
 html.theme-dark textarea,
 html.theme-dark select {
-  background-color: #0b1220 !important;
-  color: #f5f5f5 !important;
+  background-color: var(--color-bg-input) !important;
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border) !important;
 }
 
-html.theme-dark [class*='bg-white'] {
-  background-color: #1f2937 !important; /* cinza escuro para cards */
+html.theme-dark input::placeholder,
+html.theme-dark textarea::placeholder {
+  color: #7777aa !important;
 }
 
-html.theme-dark [class*='bg-ink-50'] {
-  background-color: #111827 !important; /* cinza profundo para seções */
+/* Focus rings */
+html.theme-dark .focus\:ring-ink-100:focus { --tw-ring-color: rgba(99, 102, 241, 0.3) !important; }
+html.theme-dark .focus\:ring-amber-100:focus { --tw-ring-color: rgba(245, 158, 11, 0.3) !important; }
+html.theme-dark .focus\:border-ink-400:focus { border-color: #6366f1 !important; }
+html.theme-dark .focus\:border-amber-400:focus { border-color: #f59e0b !important; }
+
+/* Hover states */
+html.theme-dark .hover\:bg-gray-800:hover {
+  background-color: #1e1e3a !important;
 }
 
-html.theme-dark [class~='bg-black'] {
-  background-color: #1f2937 !important; /* cinza para menu lateral */
+/* Scrollbar */
+html.theme-dark ::-webkit-scrollbar { width: 6px; }
+html.theme-dark ::-webkit-scrollbar-track { background: var(--color-bg-page); }
+html.theme-dark ::-webkit-scrollbar-thumb { background: #3a3a5c; border-radius: 3px; }
+html.theme-dark ::-webkit-scrollbar-thumb:hover { background: #5a5a8c; }
+
+/* Light mode card backgrounds */
+html:not(.theme-dark) .bg-sand-50 {
+  background-color: #f7fbff !important;
 }
 
-html.theme-dark [class*='hover:bg-gray-800']:hover {
-  background-color: #1f2937 !important;
-}
-
-html.theme-dark [class*='border-gray-800'] {
-  border-color: #374151 !important;
-}
-
-html.theme-dark [class*='border-'] {
-  border-color: #2a2a2a !important;
-}
-
-html.theme-dark [class*='shadow-floating'] {
-  box-shadow:
-    0 20px 40px -28px rgba(0, 0, 0, 0.9),
-    0 10px 20px -18px rgba(0, 0, 0, 0.85) !important;
-}
-
+/* ── Typography ── */
 .font-display {
   font-family: 'Playfair Display', ui-serif, Georgia;
 }
 
+/* ── Floating Shadow ── */
 .shadow-floating {
   box-shadow:
-    0 20px 40px -28px rgba(71, 85, 105, 0.55),
-    0 10px 20px -18px rgba(100, 116, 139, 0.45);
+    0 20px 40px -28px var(--color-shadow-floating),
+    0 10px 20px -18px var(--color-shadow-floating-deep);
   transition: transform 160ms ease, box-shadow 160ms ease;
 }
 
 .shadow-floating:hover {
   transform: translateY(-10px);
   box-shadow:
-    0 30px 60px -26px rgba(71, 85, 105, 0.72),
-    0 16px 30px -18px rgba(100, 116, 139, 0.58);
+    0 30px 60px -26px var(--color-shadow-floating),
+    0 16px 30px -18px var(--color-shadow-floating-deep);
+}
+
+/* ── Toast Animation ── */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

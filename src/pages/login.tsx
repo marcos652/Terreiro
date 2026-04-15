@@ -1,11 +1,54 @@
-﻿import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { auth, firebaseConfig, firebaseConfigMissing } from '@services/firebase';
+import { auth, db, firebaseConfig, firebaseConfigMissing } from '@services/firebase';
 import { getUserById, upsertUser } from '@services/userService';
-import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { COLLECTIONS } from '@services/firestoreCollections';
+
+type NextEvent = {
+  title: string;
+  date: string;
+  time: string;
+  leader: string;
+  status: string;
+};
+
+function parseEventDate(dateStr: string, timeStr: string): Date {
+  // dateStr can be "2026-04-20" or "20/04/2026"
+  let parts = dateStr.split('-');
+  if (parts.length !== 3) {
+    const br = dateStr.split('/');
+    if (br.length === 3) parts = [br[2], br[1], br[0]];
+  }
+  const [year, month, day] = parts.map(Number);
+  const [h, m] = (timeStr || '00:00').split(':').map(Number);
+  return new Date(year, month - 1, day, h || 0, m || 0);
+}
+
+function formatEventDate(dateStr: string): string {
+  let parts = dateStr.split('-');
+  if (parts.length !== 3) {
+    const br = dateStr.split('/');
+    if (br.length === 3) parts = [br[2], br[1], br[0]];
+  }
+  const [year, month, day] = parts.map(Number);
+  const d = new Date(year, month - 1, day);
+  const weekday = d.toLocaleDateString('pt-BR', { weekday: 'long' });
+  const monthName = d.toLocaleDateString('pt-BR', { month: 'long' });
+  return `${weekday}, ${day} de ${monthName}`;
+}
+
+function daysUntil(dateStr: string, timeStr: string): string {
+  const eventDate = parseEventDate(dateStr, timeStr);
+  const now = new Date();
+  const diff = Math.ceil((eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (diff < 0) return 'já aconteceu';
+  if (diff === 0) return 'hoje!';
+  if (diff === 1) return 'amanhã';
+  return `em ${diff} dias`;
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -15,7 +58,35 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
+  const [nextEvent, setNextEvent] = useState<NextEvent | null>(null);
+  const [eventLoading, setEventLoading] = useState(true);
   const router = useRouter();
+
+  // Fetch next event (public - no auth needed, uses Firestore REST or try/catch)
+  useEffect(() => {
+    if (!db) { setEventLoading(false); return; }
+    const fetchEvents = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, COLLECTIONS.EVENTS));
+        const events = snapshot.docs.map((d) => ({ ...d.data() })) as NextEvent[];
+        const now = new Date();
+        // Filter future events and sort
+        const future = events
+          .filter((e) => {
+            try {
+              return parseEventDate(e.date, e.time) >= now && e.status !== 'cancelado';
+            } catch { return false; }
+          })
+          .sort((a, b) => parseEventDate(a.date, a.time).getTime() - parseEventDate(b.date, b.time).getTime());
+        setNextEvent(future[0] || null);
+      } catch {
+        // Silently fail — user may not have read access yet
+      } finally {
+        setEventLoading(false);
+      }
+    };
+    fetchEvents();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +97,7 @@ export default function LoginPage() {
       if (!auth) {
         const missing =
           firebaseConfigMissing.length > 0 ? ` (${firebaseConfigMissing.join(', ')})` : '';
-        setError(`ConfiguraÃ§Ã£o do Firebase nÃ£o encontrada.${missing}`);
+        setError(`Configuração do Firebase não encontrada.${missing}`);
         setLoading(false);
         return;
       }
@@ -44,9 +115,7 @@ export default function LoginPage() {
             status: 'APROVADO',
             created_at: new Date().toISOString(),
           });
-          // Mantemos conectado para acesso imediato
-          
-          setInfo('Conta criada e aprovada. VocÃª jÃ¡ estÃ¡ logado.');
+          setInfo('Conta criada e aprovada. Você já está logado.');
           setLoading(false);
           router.push('/');
           return;
@@ -55,16 +124,14 @@ export default function LoginPage() {
           if (code === 'auth/email-already-in-use') {
             try {
               await sendPasswordResetEmail(auth, normalizedEmail);
-              setInfo('E-mail jÃ¡ cadastrado. Enviamos um link para redefinir a senha.');
+              setInfo('E-mail já cadastrado. Enviamos um link para redefinir a senha.');
             } catch {
-              setError('E-mail jÃ¡ cadastrado. Tente recuperar a senha.');
+              setError('E-mail já cadastrado. Tente recuperar a senha.');
             }
           } else if (code === 'auth/weak-password') {
             setError('Senha muito curta. Use 6 caracteres ou mais.');
           } else {
-            const generic = 'N\u00e3o foi poss\u00edvel criar a conta. Verifique o e-mail ou tente outra senha.';
-            const msg = err?.message ? `${generic} (Detalhe: ${err.message})` : generic;
-            setError(msg);
+            setError('Não foi possível criar a conta. Verifique o e-mail ou tente outra senha.');
           }
           setLoading(false);
           return;
@@ -77,11 +144,7 @@ export default function LoginPage() {
       } catch (err: any) {
         const code = err?.code || '';
         const isNotFound = code === 'auth/user-not-found' || code === 'auth/invalid-credential';
-        if (isNotFound) {
-          setError('UsuÃ¡rio nÃ£o encontrado ou senha invÃ¡lida.');
-        } else {
-          setError('UsuÃ¡rio ou senha invÃ¡lidos.');
-        }
+        setError(isNotFound ? 'Usuário não encontrado ou senha inválida.' : 'Usuário ou senha inválidos.');
         setLoading(false);
         return;
       }
@@ -99,178 +162,239 @@ export default function LoginPage() {
         try {
           await upsertUser(uid, synthesized);
           userDoc = { id: uid, ...synthesized };
-        } catch (err) {
-          setError('Seu usuário ainda não foi cadastrado no painel e não conseguimos criar automaticamente.');
+        } catch {
+          setError('Seu usuário ainda não foi cadastrado no painel.');
           await signOut(auth);
           setLoading(false);
           return;
         }
       }
       if (userDoc.status !== 'APROVADO') {
-        if (userDoc.status === 'BLOQUEADO') {
-          setError('Usuário bloqueado. Fale com o master.');
-        } else if (userDoc.status === 'DESATIVADO') {
-          setError('Usuário desativado.');
-        } else {
-          setError('Seu acesso está em validação pelo administrador.');
-        }
+        if (userDoc.status === 'BLOQUEADO') setError('Usuário bloqueado. Fale com o master.');
+        else if (userDoc.status === 'DESATIVADO') setError('Usuário desativado.');
+        else setError('Seu acesso está em validação pelo administrador.');
         await signOut(auth);
         setLoading(false);
         return;
       }
       router.push('/');
-    } catch (err: any) {
-      setError('UsuÃ¡rio ou senha invÃ¡lidos.');
+    } catch {
+      setError('Usuário ou senha inválidos.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleReset = async () => {
-    if (!email) {
-      setError('Digite o e-mail para recuperar a senha.');
-      return;
-    }
-    setLoading(true);
-    setError('');
-    setInfo('');
+    if (!email) { setError('Digite o e-mail para recuperar a senha.'); return; }
+    setLoading(true); setError(''); setInfo('');
     try {
-      if (!auth) {
-        const missing =
-          firebaseConfigMissing.length > 0 ? ` (${firebaseConfigMissing.join(', ')})` : '';
-        setError(`ConfiguraÃ§Ã£o do Firebase nÃ£o encontrada.${missing}`);
-        setLoading(false);
-        return;
-      }
+      if (!auth) { setError('Firebase não configurado.'); setLoading(false); return; }
       await sendPasswordResetEmail(auth, email);
-      setInfo('Enviamos um e-mail com o link de recuperaÃ§Ã£o.');
-    } catch (err: any) {
-      setError('NÃ£o foi possÃ­vel enviar o e-mail de recuperaÃ§Ã£o.');
-    } finally {
-      setLoading(false);
-    }
+      setInfo('Enviamos um e-mail com o link de recuperação.');
+    } catch { setError('Não foi possível enviar o e-mail de recuperação.'); }
+    finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f5f0] text-ink-900 overflow-x-hidden">
+    <div className="min-h-screen bg-[#0c0c14] text-white overflow-x-hidden">
       <div className="relative min-h-screen overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(148,163,184,0.20),_rgba(247,245,240,0.8))]" />
-        <div className="pointer-events-none absolute -left-24 top-10 h-64 w-64 rounded-full bg-amber-300/25 blur-3xl" />
-        <div className="pointer-events-none absolute right-10 top-1/2 h-80 w-80 -translate-y-1/2 rounded-full bg-emerald-300/25 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-sky-300/25 blur-3xl" />
+        {/* Ambient blurs */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(99,102,241,0.15),_transparent_60%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(168,85,247,0.12),_transparent_60%)]" />
+        <div className="pointer-events-none absolute -left-32 top-20 h-72 w-72 rounded-full bg-indigo-500/20 blur-[120px]" />
+        <div className="pointer-events-none absolute right-0 top-1/3 h-80 w-80 rounded-full bg-purple-500/15 blur-[120px]" />
+        <div className="pointer-events-none absolute bottom-0 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-amber-500/10 blur-[100px]" />
 
-        <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 md:px-10 min-w-0">
-          <div className="grid w-full min-w-0 gap-12 lg:grid-cols-[1.05fr_0.95fr]">
-            <div className="flex flex-col justify-center gap-6">
-              <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.4em] text-ink-400">
-                <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-ink-100/60">
+        {/* Grid pattern overlay */}
+        <div className="pointer-events-none absolute inset-0 opacity-[0.03]"
+          style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+
+        <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 md:px-10">
+          <div className="grid w-full gap-12 lg:grid-cols-[1.1fr_0.9fr]">
+
+            {/* Left side — branding + event card */}
+            <div className="flex flex-col justify-center gap-8">
+              <div className="flex items-center gap-3">
+                <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-white/10 shadow-lg ring-1 ring-white/10 backdrop-blur">
                   <Image
                     src="/logo-templo.svg"
-                    alt="Templo de Umbanda Luz e FÃ©"
+                    alt="Templo de Umbanda Luz e Fé"
                     fill
                     sizes="56px"
                     className="object-contain"
                     priority
                   />
                 </div>
-                <span>Templo Luz e FÃ©</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.4em] text-white/50">
+                  Templo Luz e Fé
+                </span>
               </div>
-              <h1 className="font-display text-5xl font-semibold leading-tight text-ink-900 md:text-6xl">
-                Seja bem-vindo, que os orixÃ¡s te abenÃ§oem!
+
+              <h1 className="font-display text-5xl font-semibold leading-tight text-white md:text-6xl">
+                Seja bem-vindo,<br />
+                <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  que os orixás te abençoem!
+                </span>
               </h1>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-ink-400">
-                <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Seguro</span>
-                <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">Organizado</span>
-                <span className="rounded-full border border-ink-200/70 bg-white/70 px-3 py-1">ConfiÃ¡vel</span>
+
+              <div className="flex flex-wrap items-center gap-3 text-xs text-white/40">
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 backdrop-blur">🔒 Seguro</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 backdrop-blur">📋 Organizado</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 backdrop-blur">⭐ Confiável</span>
               </div>
+
+              {/* ── Next Event Card ── */}
+              {!eventLoading && nextEvent && (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl">
+                  <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-indigo-400">
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="4" width="18" height="18" rx="2" />
+                      <path d="M16 2v4M8 2v4M3 10h18" />
+                    </svg>
+                    Próximo evento
+                  </div>
+
+                  <div className="mt-3 text-xl font-semibold text-white">{nextEvent.title}</div>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+                    <span className="flex items-center gap-1.5 text-white/70">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4 text-purple-400" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                        <path d="M16 2v4M8 2v4M3 10h18" />
+                      </svg>
+                      {formatEventDate(nextEvent.date)}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-white/70">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4 text-amber-400" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 6v6l4 2" />
+                      </svg>
+                      {nextEvent.time}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-[10px] font-bold text-white">
+                        {(nextEvent.leader || '?').charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-sm text-white/60">{nextEvent.leader || 'A definir'}</span>
+                    </div>
+                    <span className="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-semibold text-indigo-300">
+                      {daysUntil(nextEvent.date, nextEvent.time)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {!eventLoading && !nextEvent && (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl text-center">
+                  <div className="text-sm text-white/40">Nenhum evento futuro agendado</div>
+                </div>
+              )}
             </div>
 
+            {/* Right side — login form */}
             <form
               onSubmit={handleLogin}
-              className="w-full rounded-[36px] border border-ink-100/80 bg-white/90 p-10 shadow-[0_50px_110px_-70px_rgba(15,23,42,0.65)] backdrop-blur md:p-12 lg:p-14"
+              className="w-full rounded-[32px] border border-white/10 bg-white/[0.07] p-10 shadow-[0_50px_110px_-40px_rgba(0,0,0,0.8)] backdrop-blur-xl md:p-12"
             >
               <div className="mb-6">
-                <div className="text-xs uppercase tracking-[0.3em] text-ink-300">Acesso</div>
-                <h2 className="font-display text-4xl font-semibold text-ink-900">
+                <div className="text-xs uppercase tracking-[0.3em] text-white/30">Acesso</div>
+                <h2 className="font-display text-4xl font-semibold text-white">
                   {mode === 'register' ? 'Criar conta' : 'Entrar no painel'}
                 </h2>
-                <p className="text-lg text-ink-500">
+                <p className="mt-1 text-base text-white/40">
                   {mode === 'register'
-                    ? 'Cadastre um acesso. O master precisarÃ¡ aprovar.'
+                    ? 'Cadastre um acesso. O master precisará aprovar.'
                     : 'Use seu e-mail e senha cadastrados.'}
                 </p>
               </div>
+
               <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-2 text-xs font-semibold text-ink-400">
-                <button
-                  type="button"
-                  onClick={() => setMode('login')}
-                  className={`rounded-full px-4 py-1 ${
-                    mode === 'login' ? 'bg-ink-900 text-white' : 'bg-ink-100'
-                  }`}
-                >
-                  Entrar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMode('register')}
-                  className={`rounded-full px-4 py-1 ${
-                    mode === 'register' ? 'bg-ink-900 text-white' : 'bg-ink-100'
-                  }`}
-                >
-                  Criar conta
-                </button>
-              </div>
-                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">
-                  E-mail
-                </label>
-                <input
-                  type="email"
-                  placeholder="voce@terreiro.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-2xl border border-ink-100 bg-white px-5 py-4 text-lg text-ink-700 shadow-sm focus:border-ink-900 focus:outline-none focus:ring-2 focus:ring-ink-200"
-                  required
-                />
-                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">
-                  Senha
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Digite sua senha"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-2xl border border-ink-100 bg-white px-5 py-4 text-lg text-ink-700 shadow-sm focus:border-ink-900 focus:outline-none focus:ring-2 focus:ring-ink-200"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-ink-400 hover:text-ink-600"
-                  >
-                    {showPassword ? 'Ocultar' : 'Mostrar'}
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                  <button type="button" onClick={() => setMode('login')}
+                    className={`rounded-full px-4 py-1.5 transition ${mode === 'login' ? 'bg-indigo-500 text-white' : 'bg-white/10 text-white/50 hover:bg-white/15'}`}>
+                    Entrar
+                  </button>
+                  <button type="button" onClick={() => setMode('register')}
+                    className={`rounded-full px-4 py-1.5 transition ${mode === 'register' ? 'bg-indigo-500 text-white' : 'bg-white/10 text-white/50 hover:bg-white/15'}`}>
+                    Criar conta
                   </button>
                 </div>
-                {error && <div className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-600">{error}</div>}
-                {info && <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{info}</div>}
+
+                <div>
+                  <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/30">E-mail</label>
+                  <input
+                    type="email"
+                    placeholder="voce@terreiro.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/5 px-5 py-3.5 text-base text-white placeholder:text-white/20 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/30">Senha</label>
+                  <div className="relative mt-1.5">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Digite sua senha"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-5 py-3.5 text-base text-white placeholder:text-white/20 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                      required
+                    />
+                    <button type="button" onClick={() => setShowPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-white/30 hover:text-white/60 transition">
+                      {showPassword ? 'Ocultar' : 'Mostrar'}
+                    </button>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="flex items-center gap-2 rounded-xl bg-rose-500/10 border border-rose-500/20 px-4 py-2.5 text-sm text-rose-300">
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6M9 9l6 6" />
+                    </svg>
+                    {error}
+                  </div>
+                )}
+                {info && (
+                  <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-2.5 text-sm text-emerald-300">
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" /><path d="M9 12l2 2 4-4" />
+                    </svg>
+                    {info}
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  className="mt-2 w-full rounded-2xl bg-ink-900 py-4 text-lg font-semibold text-white shadow-lg hover:bg-ink-800 transition"
+                  className="mt-2 w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700 transition disabled:opacity-60"
                   disabled={loading}
                 >
-                  {loading ? 'Processando...' : mode === 'register' ? 'Criar conta' : 'Entrar'}
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Processando...
+                    </span>
+                  ) : mode === 'register' ? 'Criar conta' : 'Entrar'}
                 </button>
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className="text-xs font-semibold text-ink-400 hover:text-ink-600"
-                  disabled={loading}
-                >
+
+                <button type="button" onClick={handleReset}
+                  className="text-xs font-semibold text-white/30 hover:text-indigo-400 transition"
+                  disabled={loading}>
                   Esqueci minha senha
                 </button>
-                <div className="mt-2 text-center text-xs text-ink-400">
-                  Precisa de acesso? Fale com a administraÃ§Ã£o.
+
+                <div className="text-center text-xs text-white/20">
+                  Precisa de acesso? Fale com a administração.
                 </div>
               </div>
             </form>
@@ -280,4 +404,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

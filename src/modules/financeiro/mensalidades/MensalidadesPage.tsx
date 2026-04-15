@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
 import { useAuth } from '@contexts/AuthContext';
+import { useToast } from '@contexts/ToastContext';
 import LineChart from '@components/charts/LineChart';
 import {
   addMembership,
@@ -10,10 +11,15 @@ import {
   MembershipItem,
   updateMembership,
 } from '@services/membershipService';
+import { addCashTransaction, getCashTransactions, CashTransaction } from '@services/transactionService';
 import { logService } from '@services/logService';
+import { db } from '@services/firebase';
+import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { COLLECTIONS } from '@services/firestoreCollections';
 
 export default function MensalidadesPage() {
   const { profile } = useAuth();
+  const { showToast } = useToast();
   const formatBRL = (value: number) =>
     new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
   const getMonthKey = (date: Date) =>
@@ -82,7 +88,7 @@ export default function MensalidadesPage() {
               name,
               value: defaultMemberValue,
               status: 'pendente',
-              lastPayment: 'â€”',
+              lastPayment: '—',
               created_at: new Date().toISOString(),
               month: currentMonth,
             };
@@ -134,9 +140,13 @@ export default function MensalidadesPage() {
   }, [members]);
 
   const totals = useMemo(() => {
-    const paid = members.filter((member) => member.status === 'pago').reduce((acc, member) => acc + member.value, 0);
-    return { paid };
-  }, [members]);
+    const monthMembers = members.filter((m) => m.month === monthFilter);
+    const paid = monthMembers.filter((m) => m.status === 'pago').reduce((acc, m) => acc + m.value, 0);
+    const total = monthMembers.reduce((acc, m) => acc + m.value, 0);
+    const pendingCount = monthMembers.filter((m) => m.status === 'pendente').length;
+    const paidCount = monthMembers.filter((m) => m.status === 'pago').length;
+    return { paid, total, pendingCount, paidCount, totalMembers: monthMembers.length };
+  }, [members, monthFilter]);
 
   const filtered = useMemo(
     () =>
@@ -186,6 +196,48 @@ export default function MensalidadesPage() {
     };
   }, [members]);
 
+  // ── Integração Caixa: cria transação ao marcar como pago ──
+  const createCaixaTransaction = async (member: MembershipItem) => {
+    try {
+      const monthLabel = monthFilter || getMonthKey(new Date());
+      const [year, month] = monthLabel.split('-');
+      const monthName = monthNames[parseInt(month, 10) - 1] || month;
+      await addCashTransaction({
+        label: `Mensalidade ${member.name} — ${monthName}/${year}`,
+        type: 'entrada',
+        amount: member.value,
+        date: new Date().toLocaleDateString('pt-BR'),
+        method: 'mensalidade',
+        created_at: new Date().toISOString(),
+      }, profile?.email);
+    } catch (err) {
+      console.error('Erro ao criar transação no caixa:', err);
+    }
+  };
+
+  // Remove transação do caixa ao desmarcar pagamento
+  const removeCaixaTransaction = async (member: MembershipItem) => {
+    if (!db) return;
+    try {
+      const monthLabel = monthFilter || getMonthKey(new Date());
+      const [year, month] = monthLabel.split('-');
+      const monthName = monthNames[parseInt(month, 10) - 1] || month;
+      const searchLabel = `Mensalidade ${member.name} — ${monthName}/${year}`;
+
+      // Busca a transação correspondente
+      const snapshot = await getDocs(collection(db, COLLECTIONS.CASH_TRANSACTIONS));
+      const matchingDoc = snapshot.docs.find((d) => {
+        const data = d.data();
+        return data.label === searchLabel && data.method === 'mensalidade';
+      });
+      if (matchingDoc) {
+        await deleteDoc(doc(db, COLLECTIONS.CASH_TRANSACTIONS, matchingDoc.id));
+      }
+    } catch (err) {
+      console.error('Erro ao remover transação do caixa:', err);
+    }
+  };
+
   const handleToggle = async (member: MembershipItem) => {
     if (!canEdit) return;
     if (!member.id) return;
@@ -198,14 +250,20 @@ export default function MensalidadesPage() {
         item.id === member.id ? { ...item, status: nextStatus, lastPayment: nextPayment } : item
       )
     );
+
+    // ── Integração com Caixa ──
+    if (nextStatus === 'pago') {
+      await createCaixaTransaction(member);
+      showToast(`${member.name} marcado como pago! Transação adicionada ao caixa.`, 'success');
+    } else {
+      await removeCaixaTransaction(member);
+      showToast(`${member.name} marcado como pendente. Transação removida do caixa.`, 'info');
+    }
   };
 
   const handleResetMembers = async () => {
     if (!canEdit) return;
-    const confirmed = window.confirm(
-      'Isso vai apagar todos os registros atuais e recriar a lista padr\u00e3o. Deseja continuar?'
-    );
-    if (!confirmed) return;
+    if (!window.confirm('Isso vai apagar todos os registros atuais e recriar a lista padrão. Deseja continuar?')) return;
     setResetting(true);
     try {
       await clearMemberships();
@@ -216,7 +274,7 @@ export default function MensalidadesPage() {
             name,
             value: defaultMemberValue,
             status: 'pendente',
-            lastPayment: 'â€”',
+            lastPayment: '—',
             created_at: new Date().toISOString(),
             month: monthKey,
           };
@@ -227,6 +285,7 @@ export default function MensalidadesPage() {
       setMembers(created);
       setSearch('');
       setStatusFilter('todos');
+      showToast('Lista recriada com sucesso!', 'success');
     } finally {
       setResetting(false);
     }
@@ -250,6 +309,7 @@ export default function MensalidadesPage() {
       setMembers((prev) => [{ id, ...payload }, ...prev]);
       setNewMemberName('');
       setNewMemberValue('');
+      showToast(`${payload.name} adicionado!`, 'success');
     } finally {
       setAdding(false);
     }
@@ -258,10 +318,14 @@ export default function MensalidadesPage() {
   const handleRemoveMember = async (member: MembershipItem) => {
     if (!canEdit) return;
     if (!member.id) return;
-    const confirmed = window.confirm(`Remover ${member.name}?`);
-    if (!confirmed) return;
+    if (!window.confirm(`Remover ${member.name}?`)) return;
     await deleteMembership(member.id, profile?.email);
+    // Se estava pago, remove do caixa também
+    if (member.status === 'pago') {
+      await removeCaixaTransaction(member);
+    }
     setMembers((prev) => prev.filter((item) => item.id !== member.id));
+    showToast(`${member.name} removido.`, 'success');
   };
 
   const handleApplyGoalReduction = () => {
@@ -288,7 +352,7 @@ export default function MensalidadesPage() {
   const handleExport = () => {
     const rows = filtered.length > 0 ? filtered : members;
     if (rows.length === 0) return;
-    const header = ['Nome', 'Status', 'Valor', 'Ultimo pagamento'];
+    const header = ['Nome', 'Status', 'Valor', 'Último pagamento'];
     const escapeCell = (value: string | number) => {
       const text = String(value ?? '');
       if (text.includes('"') || text.includes(';') || text.includes('\n')) {
@@ -319,12 +383,15 @@ export default function MensalidadesPage() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+    showToast('Relatório exportado!', 'success');
   };
+
+  const progressPercent = monthlyGoal > 0 ? Math.min(100, (totals.paid / monthlyGoal) * 100) : 0;
 
   return (
     <AppShell
       title="Mensalidades"
-      subtitle="Controle de pagamentos, pendencias e evolucao mensal."
+      subtitle="Controle de pagamentos, pendências e evolução mensal."
       actions={
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
             <button
@@ -332,19 +399,48 @@ export default function MensalidadesPage() {
               disabled={resetting || !canEdit}
               className="w-full rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-ink-300 disabled:opacity-60 sm:w-auto"
             >
-              {resetting ? 'Recriando...' : 'Criar lista padr\u00e3o'}
+              {resetting ? 'Recriando...' : 'Criar lista padrão'}
             </button>
           <button
             onClick={handleExport}
             disabled={loading || members.length === 0}
             className="w-full rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-ink-300 disabled:opacity-60 sm:w-auto"
           >
-            Exportar relatorio
+            Exportar relatório
           </button>
         </div>
       }
     >
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {/* Progress bar */}
+      <div className="mb-6 rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Progresso do mês</div>
+            <div className="mt-1 text-lg font-semibold text-ink-900">
+              R$ {formatBRL(totals.paid)} <span className="text-sm font-normal text-ink-400">/ R$ {formatBRL(monthlyGoal)}</span>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-ink-900">{progressPercent.toFixed(0)}%</div>
+            <div className="text-xs text-ink-400">
+              {totals.paidCount}/{totals.totalMembers} pagos
+            </div>
+          </div>
+        </div>
+        <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-ink-100">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${
+              progressPercent >= 100 ? 'bg-emerald-500' : progressPercent >= 50 ? 'bg-amber-400' : 'bg-rose-400'
+            }`}
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+        <div className="mt-2 flex items-center gap-4 text-xs text-ink-400">
+          <span>💡 Pagamentos de mensalidade são registrados automaticamente no Caixa</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Meta mensal</div>
           <div className="mt-2 text-2xl font-semibold text-ink-900">R$ {formatBRL(monthlyGoal)}</div>
@@ -367,12 +463,12 @@ export default function MensalidadesPage() {
                 className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
                 type="button"
               >
-                Retirar valor
+                Retirar
               </button>
             </div>
-            <div className="mt-2 text-[11px] text-ink-400">
-              Total retirado: R$ {formatBRL(goalReduction)}
-            </div>
+            {goalReduction > 0 && (
+              <div className="mt-2 text-[11px] text-ink-400">Total retirado: R$ {formatBRL(goalReduction)}</div>
+            )}
           </div>
         </div>
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
@@ -399,21 +495,21 @@ export default function MensalidadesPage() {
                 className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
                 type="button"
               >
-                Retirar valor
+                Retirar
               </button>
             </div>
-            <div className="mt-2 text-[11px] text-ink-400">
-              Total retirado: R$ {formatBRL(paidReduction)}
-            </div>
+            {paidReduction > 0 && (
+              <div className="mt-2 text-[11px] text-ink-400">Total retirado: R$ {formatBRL(paidReduction)}</div>
+            )}
           </div>
         </div>
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
-          <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Inadimplencia</div>
+          <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Inadimplência</div>
           <div className="mt-2 text-2xl font-semibold text-rose-500">
-            {formatBRL(Math.max(0, Math.max(0, monthlyGoal - totals.paid) - debtReduction))}
+            R$ {formatBRL(Math.max(0, Math.max(0, monthlyGoal - totals.paid) - debtReduction))}
           </div>
           <div className="mt-3 text-xs text-ink-500">
-            Inadimplência bruta: R$ {formatBRL(Math.max(0, monthlyGoal - totals.paid))}
+            {totals.pendingCount} membro{totals.pendingCount !== 1 ? 's' : ''} pendente{totals.pendingCount !== 1 ? 's' : ''}
           </div>
           <div className="mt-3 rounded-xl border border-ink-100 bg-ink-50/80 p-3 text-xs text-ink-600">
             <div className="text-[11px] uppercase tracking-[0.25em] text-ink-400">Retirar valor</div>
@@ -433,17 +529,17 @@ export default function MensalidadesPage() {
                 className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60"
                 type="button"
               >
-                Retirar valor
+                Retirar
               </button>
             </div>
-            <div className="mt-2 text-[11px] text-ink-400">
-              Total retirado: R$ {formatBRL(debtReduction)}
-            </div>
+            {debtReduction > 0 && (
+              <div className="mt-2 text-[11px] text-ink-400">Total retirado: R$ {formatBRL(debtReduction)}</div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[2fr_1.1fr]">
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[2fr_1.1fr]">
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
@@ -529,23 +625,27 @@ export default function MensalidadesPage() {
                   <div>
                     <div className="text-sm font-semibold text-ink-900">{member.name}</div>
                     <div className="text-xs text-ink-400">
-                      Ultimo pagamento: {lastPaymentByName.get(member.name) || 'â€”'}
+                      R$ {formatBRL(member.value)} • Último pagamento: {lastPaymentByName.get(member.name) || '—'}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-semibold ${
                         member.status === 'pago' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                       }`}
                     >
-                      {member.status === 'pago' ? 'Pago' : 'Pendente'}
+                      {member.status === 'pago' ? '✓ Pago' : '⏳ Pendente'}
                     </span>
                     <button
                       onClick={() => handleToggle(member)}
                       disabled={!canEdit}
-                      className="rounded-lg border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-600 hover:border-ink-300 disabled:opacity-60"
+                      className={`rounded-lg border px-3 py-1 text-xs font-semibold disabled:opacity-60 ${
+                        member.status === 'pago'
+                          ? 'border-amber-200 text-amber-600 hover:border-amber-300'
+                          : 'border-emerald-200 text-emerald-600 hover:border-emerald-300'
+                      }`}
                     >
-                      Alternar
+                      {member.status === 'pago' ? 'Desfazer' : 'Marcar pago'}
                     </button>
                     <button
                       onClick={() => handleRemoveMember(member)}
@@ -561,15 +661,15 @@ export default function MensalidadesPage() {
             {loading && (
               <div className="py-8 text-center text-sm text-ink-400">Carregando membros...</div>
             )}
-            {filtered.length === 0 && (
+            {!loading && filtered.length === 0 && (
               <div className="py-8 text-center text-sm text-ink-400">Nenhum membro encontrado.</div>
             )}
           </div>
         </div>
 
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
-          <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Evolucao</div>
-          <div className="text-lg font-semibold text-ink-900">Recebimentos por mes</div>
+          <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Evolução</div>
+          <div className="text-lg font-semibold text-ink-900">Recebimentos por mês</div>
           <div className="mt-4">
             <LineChart
               data={monthlySeries.data}
@@ -581,11 +681,9 @@ export default function MensalidadesPage() {
               valueFormatter={(value) => `R$ ${formatBRL(value)}`}
             />
           </div>
-          <div className="mt-3 text-xs text-ink-400">Meta atual: R$ {formatBRL(monthlyGoal)}/mÃªs</div>
+          <div className="mt-3 text-xs text-ink-400">Meta atual: R$ {formatBRL(monthlyGoal)}/mês</div>
         </div>
       </div>
     </AppShell>
   );
 }
-
-

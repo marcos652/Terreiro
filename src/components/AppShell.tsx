@@ -40,6 +40,26 @@ const navItems = [
     ),
   },
   {
+    key: 'doacoes',
+    label: 'Doações',
+    href: '/doacoes',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M12 21C12 21 4 13.5 4 8.5C4 5.42 6.42 3 9.5 3c1.74 0 3.41.81 4.5 2.09A6.04 6.04 0 0 1 18.5 3C21.58 3 24 5.42 24 8.5c0 5-8 12.5-8 12.5" />
+      </svg>
+    ),
+  },
+  {
+    key: 'chat',
+    label: 'Chat',
+    href: '/chat',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg>
+    ),
+  },
+  {
     key: 'mensalidades',
     label: 'Mensalidades',
     href: '/financeiro/mensalidades',
@@ -69,6 +89,30 @@ const navItems = [
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
         <path d="M9 18a3 3 0 1 1-6 0V6l10-2v10" />
         <circle cx="16" cy="17" r="3" />
+      </svg>
+    ),
+  },
+  {
+    key: 'galeria',
+    label: 'Galeria',
+    href: '/galeria',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <circle cx="8.5" cy="8.5" r="1.5" />
+        <path d="M21 15l-5-5L5 21" />
+      </svg>
+    ),
+  },
+  {
+    key: 'fundamentos',
+    label: 'Fundamentos',
+    href: '/fundamentos',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        <path d="M8 7h8M8 11h6" />
       </svg>
     ),
   },
@@ -107,6 +151,17 @@ const navItems = [
     ),
   },
   {
+    key: 'perfil',
+    label: 'Meu Perfil',
+    href: '/perfil',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M5 20a7 7 0 0 1 14 0" />
+      </svg>
+    ),
+  },
+  {
     key: 'logs',
     label: 'Logs',
     href: '/logs',
@@ -127,11 +182,9 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   const canSignOut = Boolean(auth);
   const [darkMode, setDarkMode] = useState(false);
   const { unreadCount, notifications, markAsRead } = useNotifications();
-  const [showNotifications, setShowNotifications] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [devtoolsOpen, setDevtoolsOpen] = useState(false);
 
   // Todas as abas liberadas para todos
   const allowedNavItems = navItems;
@@ -172,22 +225,6 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
     ensureMasterDoc();
   }, [user, profile]);
 
-  // Detecta DevTools aberto e oculta conteúdo sensível
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const checkDevtools = () => {
-      const threshold = 150;
-      const widthDiff = window.outerWidth - window.innerWidth;
-      const heightDiff = window.outerHeight - window.innerHeight;
-      setDevtoolsOpen(widthDiff > threshold || heightDiff > threshold);
-    };
-    const interval = window.setInterval(checkDevtools, 900);
-    window.addEventListener('resize', checkDevtools);
-    return () => {
-      window.clearInterval(interval);
-      window.removeEventListener('resize', checkDevtools);
-    };
-  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -209,10 +246,6 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
     window.localStorage.setItem('theme-mode', 'light');
   };
 
-  const handleNotificationClick = () => {
-    markAsRead();
-    setShowNotifications(false);
-  };
 
   const searchItems = [
     ...allowedNavItems.map((item) => ({ label: item.label, href: item.href, type: 'Menu' as const })),
@@ -265,16 +298,6 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   return (
     <div className="min-h-screen bg-sand-50 text-ink-900 overflow-x-hidden">
       <div className="relative">
-        {devtoolsOpen && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-6 text-center text-white">
-            <div className="max-w-md space-y-3">
-              <div className="text-lg font-semibold">Dados protegidos</div>
-              <div className="text-sm text-ink-100/80">
-                Feche o DevTools (F12) para visualizar o painel.
-              </div>
-            </div>
-          </div>
-        )}
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.20),_rgba(255,255,255,0))]" />
         <div className="flex min-h-screen">
           <aside className="relative hidden w-72 flex-shrink-0 border-r border-gray-800 bg-black backdrop-blur md:flex md:flex-col lg:w-80">
@@ -314,123 +337,133 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
             </div>
           </aside>
           <div className="flex-1 min-w-0">
-            <header className="flex flex-col gap-4 border-b border-ink-100 bg-white/75 px-4 py-4 backdrop-blur md:flex-row md:items-center md:justify-between md:px-6 2xl:px-12">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setMobileOpen(true)}
-                  className="flex h-10 w-10 items-center justify-center rounded-2xl bg-ink-900 text-white md:hidden"
-                  aria-label="Abrir menu"
-                  aria-expanded={mobileOpen}
-                >
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-                <div>
-                  <div className="text-xs uppercase tracking-[0.2em] text-ink-400 md:hidden">Terreiro Admin</div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="font-display text-2xl font-semibold text-ink-900">{title}</h1>
-                    <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-700">
-                      Painel
-                    </span>
-                  </div>
-                  <div className="mt-1 h-1 w-16 rounded-full bg-gradient-to-r from-amber-400 via-amber-200 to-transparent" />
-                  {subtitle && <p className="mt-2 text-sm text-ink-500">{subtitle}</p>}
-                  <div className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-ink-400">
-                    {todayLabel} • Marília / SP • Templo de Umbanda Luz e Fé
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                <div className="relative w-full md:w-auto">
-                  <form onSubmit={handleSearchSubmit}>
-                    <input
-                      className="w-full rounded-2xl border border-ink-100 bg-white px-4 py-2 text-sm text-ink-700 shadow-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100 md:w-64"
-                      placeholder="Buscar menus e cards..."
-                      value={searchQuery}
-                      onFocus={() => setSearchOpen(true)}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        setSearchOpen(true);
-                      }}
-                    />
-                  </form>
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-ink-100 px-2 py-0.5 text-[10px] font-semibold text-ink-500">
-                    Ctrl K
-                  </span>
-                  {searchOpen && searchQuery.trim().length > 0 && (
-                    <div className="absolute z-20 mt-1 w-full rounded-2xl border border-ink-100 bg-white p-2 shadow-lg">
-                      {filteredSearch.length === 0 && (
-                        <div className="px-3 py-2 text-xs text-ink-400">Nada encontrado.</div>
-                      )}
-                      {filteredSearch.slice(0, 8).map((item) => (
-                        <button
-                          key={`${item.type}-${item.href}-${item.label}`}
-                          onClick={() => handleSearchSelect(item.href)}
-                          className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm text-ink-700 hover:bg-ink-50"
-                          type="button"
-                        >
-                          <span>{item.label}</span>
-                          <span className="text-[10px] uppercase tracking-[0.2em] text-ink-400">{item.type}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 text-ink-400">
-                  <button className="hidden h-10 w-10 items-center justify-center rounded-2xl border border-ink-100 bg-white hover:border-ink-200 md:flex">
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-                      <path d="M12 5v14M5 12h14" />
-                    </svg>
-                  </button>
-                  <button className="hidden h-10 w-10 items-center justify-center rounded-2xl border border-ink-100 bg-white hover:border-ink-200 md:flex">
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-                      <path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
-                      <path d="M9 17a3 3 0 0 0 6 0" />
-                    </svg>
-                  </button>
-                </div>
-                {actions}
-                <button
-                  type="button"
-                  onClick={handleThemeToggle}
-                  className="group inline-flex w-full items-center justify-between gap-3 rounded-2xl border border-ink-200 bg-white px-3 py-2 text-left shadow-sm transition hover:border-ink-300 sm:w-auto"
-                  role="switch"
-                  aria-checked={darkMode}
-                  aria-label={darkMode ? 'Desativar modo escuro' : 'Ativar modo escuro'}
-                  title={darkMode ? 'Desativar modo escuro' : 'Ativar modo escuro'}
-                >
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-500">
-                    {darkMode ? 'Escuro' : 'Claro'}
-                  </span>
-                  <span
-                    className={`relative h-7 w-12 rounded-full transition ${
-                      darkMode ? 'bg-emerald-500' : 'bg-ink-200'
-                    }`}
+            <header className="border-b border-ink-100 bg-white/75 backdrop-blur">
+              {/* Top bar */}
+              <div className="flex items-center justify-between gap-4 px-4 py-3 md:px-6 2xl:px-12">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setMobileOpen(true)}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink-900 text-white md:hidden"
+                    aria-label="Abrir menu"
+                    aria-expanded={mobileOpen}
                   >
-                    <span
-                      className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-transform ${
-                        darkMode ? 'translate-x-5' : 'translate-x-0.5'
-                      }`}
-                    />
-                  </span>
-                </button>
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </button>
+                  {/* Breadcrumb + Title */}
+                  <div>
+                    <div className="flex items-center gap-1.5 text-[11px] text-ink-400">
+                      <span>Painel</span>
+                      <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M9 5l7 7-7 7" />
+                      </svg>
+                      <span className="font-semibold text-ink-600">{title}</span>
+                    </div>
+                    <h1 className="font-display text-xl font-semibold text-ink-900 md:text-2xl">{title}</h1>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2">
-                  {user?.email && (
-                    <span className="hidden rounded-full border border-ink-100 bg-white px-3 py-2 text-xs font-semibold text-ink-500 md:inline-flex">
-                      {user.email}
+                  {/* Search */}
+                  <div className="relative hidden md:block">
+                    <form onSubmit={handleSearchSubmit}>
+                      <input
+                        className="w-56 rounded-xl border border-ink-100 bg-white px-4 py-2 text-sm text-ink-700 shadow-sm focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100 lg:w-64"
+                        placeholder="Buscar..."
+                        value={searchQuery}
+                        onFocus={() => setSearchOpen(true)}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setSearchOpen(true);
+                        }}
+                      />
+                    </form>
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded bg-ink-100 px-1.5 py-0.5 text-[9px] font-semibold text-ink-400">
+                      ⌘K
                     </span>
-                  )}
+                    {searchOpen && searchQuery.trim().length > 0 && (
+                      <div className="absolute z-20 mt-1 w-full rounded-xl border border-ink-100 bg-white p-1.5 shadow-lg">
+                        {filteredSearch.length === 0 && (
+                          <div className="px-3 py-2 text-xs text-ink-400">Nada encontrado.</div>
+                        )}
+                        {filteredSearch.slice(0, 8).map((item) => (
+                          <button
+                            key={`${item.type}-${item.href}-${item.label}`}
+                            onClick={() => handleSearchSelect(item.href)}
+                            className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-ink-700 hover:bg-ink-50"
+                            type="button"
+                          >
+                            <span>{item.label}</span>
+                            <span className="text-[10px] uppercase tracking-[0.2em] text-ink-400">{item.type}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Theme toggle */}
+                  <button
+                    type="button"
+                    onClick={handleThemeToggle}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-ink-100 bg-white text-ink-500 hover:border-ink-200 hover:text-ink-700 transition"
+                    title={darkMode ? 'Modo claro' : 'Modo escuro'}
+                  >
+                    {darkMode ? (
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="5" />
+                        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                      </svg>
+                    )}
+                  </button>
+
+                  {/* User pill */}
+                  <div className="hidden items-center gap-1.5 rounded-xl border border-ink-100 bg-white px-1.5 py-1 md:flex">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 text-[10px] font-bold text-white">
+                      {(profile?.name || user?.email || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <span className="max-w-[120px] truncate px-1 text-xs font-medium text-ink-600">
+                      {profile?.name || user?.email?.split('@')[0] || ''}
+                    </span>
+                    <button
+                      onClick={handleSignOut}
+                      disabled={!canSignOut}
+                      className="flex h-7 items-center rounded-lg border border-ink-100 px-2 text-[11px] font-semibold text-ink-500 hover:border-ink-200 hover:text-ink-700 transition disabled:opacity-60"
+                    >
+                      Sair
+                    </button>
+                  </div>
+
+                  {/* Mobile sign out */}
                   <button
                     onClick={handleSignOut}
                     disabled={!canSignOut}
-                    className={`w-full rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-ink-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto`}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-ink-100 bg-white text-ink-500 hover:text-rose-500 transition md:hidden"
+                    title="Sair"
                   >
-                    Sair
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+                    </svg>
                   </button>
                 </div>
               </div>
+
+              {/* Subtitle bar */}
+              {(subtitle || actions) && (
+                <div className="flex flex-col gap-2 border-t border-ink-100/50 px-4 py-2.5 md:flex-row md:items-center md:justify-between md:px-6 2xl:px-12">
+                  <div className="flex items-center gap-3">
+                    {subtitle && <p className="text-sm text-ink-500">{subtitle}</p>}
+                    <span className="hidden text-[10px] text-ink-300 md:inline">•</span>
+                    <span className="hidden text-[11px] text-ink-400 md:inline">{todayLabel} • Marília / SP</span>
+                  </div>
+                  {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+                </div>
+              )}
             </header>
             {mobileOpen && (
               <>

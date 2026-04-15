@@ -7,10 +7,10 @@ export interface User {
   id?: string;
   name: string;
   email: string;
-  password?: string; // hash
   role: 'MASTER' | 'EDITOR' | 'VISUALIZADOR';
   status: 'PENDENTE' | 'APROVADO' | 'BLOQUEADO' | 'DESATIVADO';
   permissions?: string[]; // usado para EDITOR
+  photoURL?: string; // foto de perfil em base64
   created_at: string;
 }
 

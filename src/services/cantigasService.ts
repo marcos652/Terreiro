@@ -8,6 +8,8 @@ export interface CantigaItem {
   category: string;
   title?: string;
   lyrics: string;
+  audioBase64?: string;
+  audioName?: string;
   created_at: string;
 }
 

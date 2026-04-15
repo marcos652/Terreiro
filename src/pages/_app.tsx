@@ -4,6 +4,7 @@ import type { AppProps } from "next/app";
 import { useEffect } from "react";
 import { AuthProvider } from "@contexts/AuthContext";
 import { NotificationProvider } from "@contexts/NotificationContext";
+import { ToastProvider } from "@contexts/ToastContext";
 
 export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
@@ -21,7 +22,9 @@ export default function App({ Component, pageProps }: AppProps) {
       </Head>
       <AuthProvider>
         <NotificationProvider>
-          <Component {...pageProps} />
+          <ToastProvider>
+            <Component {...pageProps} />
+          </ToastProvider>
         </NotificationProvider>
       </AuthProvider>
     </>

@@ -3,7 +3,6 @@ import AppShell from '@components/AppShell';
 import { useAuth } from '@contexts/AuthContext';
 import { addEvent, deleteEvent, updateEvent, EventItem, getEvents } from '@services/eventService';
 import { useNotifications } from '@contexts/NotificationContext';
-import { logService } from '@services/logService';
 
 export default function EventosPage() {
   const [events, setEvents] = useState<EventItem[]>([]);

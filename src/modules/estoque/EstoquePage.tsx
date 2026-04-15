@@ -9,9 +9,7 @@ import {
   StockItem,
   updateStockItem,
 } from '@services/stockService';
-import { logService } from '@services/logService';
 
-const initialItems: StockItem[] = [];
 
 export default function EstoquePage() {
   const [items, setItems] = useState<StockItem[]>([]);
