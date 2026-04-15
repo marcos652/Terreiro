@@ -297,6 +297,21 @@ export default function GaleriaPage() {
     } catch { showToast('Erro ao remover.', 'error'); }
   };
 
+  const handleDownload = (item: GaleriaItem) => {
+    try {
+      const link = document.createElement('a');
+      link.href = item.base64;
+      const ext = item.mimeType?.split('/')[1] || (item.tipo === 'video' ? 'mp4' : 'jpg');
+      link.download = item.fileName || `${item.titulo || 'galeria'}.${ext}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('Download iniciado!', 'success');
+    } catch {
+      showToast('Erro ao baixar.', 'error');
+    }
+  };
+
   const clearSelection = () => {
     setSelectedFile(null);
     setPreview(null);
@@ -443,6 +458,13 @@ export default function GaleriaPage() {
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                       </svg>
                     </button>
+                    <button onClick={() => handleDownload(item)} className="group" title="Baixar">
+                      <svg viewBox="0 0 24 24" className="h-6 w-6 text-ink-600 transition hover:scale-110 hover:text-ink-900" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                    </button>
                   </div>
 
                   {/* Like count */}
@@ -521,6 +543,17 @@ export default function GaleriaPage() {
                       </svg>
                     </button>
                   )}
+                  <button
+                    onClick={() => handleDownload(lightbox)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-ink-200 text-ink-500 hover:bg-ink-50 hover:text-ink-700 transition"
+                    title="Baixar"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                  </button>
                   <button
                     onClick={closeLightbox}
                     className="flex h-8 w-8 items-center justify-center rounded-full border border-ink-200 text-ink-500 hover:bg-ink-50 hover:text-ink-900 transition"
