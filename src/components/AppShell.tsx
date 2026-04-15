@@ -435,9 +435,18 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
 
                   {/* User pill */}
                   <div className="hidden items-center gap-1.5 rounded-xl border border-ink-100 bg-white px-1.5 py-1 md:flex">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 text-[10px] font-bold text-white">
-                      {(profile?.name || user?.email || '?').charAt(0).toUpperCase()}
-                    </div>
+                    {(profile?.photoURL || user?.photoURL) ? (
+                      <img
+                        src={profile?.photoURL || user?.photoURL || ''}
+                        alt={profile?.name || ''}
+                        className="h-7 w-7 rounded-lg object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 text-[10px] font-bold text-white">
+                        {(profile?.name || user?.email || '?').charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <span className="max-w-[120px] truncate px-1 text-xs font-medium text-ink-600">
                       {profile?.name || user?.email?.split('@')[0] || ''}
                     </span>
