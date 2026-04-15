@@ -311,8 +311,8 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
       <div className="relative">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.20),_rgba(255,255,255,0))]" />
         <div className="flex min-h-screen">
-          <aside className="relative hidden w-72 flex-shrink-0 border-r border-gray-800 bg-black backdrop-blur md:flex md:flex-col lg:w-80">
-            <div className="pointer-events-none absolute right-0 top-0 h-full w-px bg-gradient-to-b from-ink-100 via-ink-200 to-transparent opacity-80" />
+          <aside className="relative hidden w-72 flex-shrink-0 bg-black md:flex md:flex-col lg:w-80 shadow-[4px_0_24px_rgba(0,0,0,0.3)]">
+
             <div className="flex items-center gap-3 px-7 py-7">
               <div className="relative h-12 w-12 overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/20">
                 <Image src="/logo-templo.svg" alt="Templo de Umbanda Luz e Fé" fill sizes="48px" className="object-contain" priority />
@@ -342,13 +342,13 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                 })}
               </div>
             </nav>
-            <div className="border-t border-ink-100 px-7 py-5 text-xs text-ink-400">
+            <div className="px-7 py-5 text-xs text-ink-400">
               <div>Painel interno</div>
               <div className="mt-2 text-sm font-semibold text-ink-200">Desenvolvido Por Marcos Vinicius</div>
             </div>
           </aside>
           <div className="flex-1 min-w-0">
-            <header className="border-b border-ink-100 bg-white/75 backdrop-blur">
+            <header className="bg-white/75 backdrop-blur shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               {/* Top bar */}
               <div className="flex items-center justify-between gap-4 px-4 py-3 md:px-6 2xl:px-12">
                 <div className="flex items-center gap-3">
