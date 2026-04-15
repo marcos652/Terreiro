@@ -3,7 +3,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@services/firebase';
 import { User as AppUser } from '@services/userService';
 import { isBootstrapMasterUid } from '@services/constants';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import { COLLECTIONS } from '@services/firestoreCollections';
 
 interface AuthContextProps {
@@ -26,18 +26,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     let unsubProfile: (() => void) | null = null;
+    let presenceInterval: ReturnType<typeof setInterval> | null = null;
+
+    const updatePresence = (uid: string, online: boolean) => {
+      try {
+        const ref = doc(db, COLLECTIONS.USER_PRESENCE, uid);
+        setDoc(ref, { online, last_seen: serverTimestamp() }, { merge: true }).catch(() => {});
+      } catch {}
+    };
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
 
       // Limpa listener anterior
       if (unsubProfile) { unsubProfile(); unsubProfile = null; }
+      if (presenceInterval) { clearInterval(presenceInterval); presenceInterval = null; }
 
       if (!firebaseUser) {
         setProfile(null);
         setLoading(false);
         return;
       }
+
+      // Marcar online
+      updatePresence(firebaseUser.uid, true);
+      // Atualizar last_seen a cada 60s
+      presenceInterval = setInterval(() => updatePresence(firebaseUser.uid, true), 60_000);
+
+      // Marcar offline ao sair da página
+      const handleBeforeUnload = () => updatePresence(firebaseUser.uid, false);
+      window.addEventListener('beforeunload', handleBeforeUnload);
 
       // Listener em tempo real no documento do usuário
       const userDocRef = doc(db, COLLECTIONS.USERS, firebaseUser.uid);
@@ -74,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       unsubscribe();
       if (unsubProfile) unsubProfile();
+      if (presenceInterval) clearInterval(presenceInterval);
     };
   }, []);
 

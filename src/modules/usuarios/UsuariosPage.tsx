@@ -4,8 +4,10 @@ import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@contexts/ToastContext';
 import { addUser, deleteUser, getUsers, updateUser, upsertUserById, User } from '@services/userService';
 import { createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
-import { auth, firebaseConfig } from '@services/firebase';
+import { auth, db, firebaseConfig } from '@services/firebase';
 import { initializeApp, getApps } from 'firebase/app';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { COLLECTIONS } from '@services/firestoreCollections';
 
 type RoleFilter = 'ALL' | 'MASTER' | 'EDITOR' | 'VISUALIZADOR';
 const menuPermissions = [
@@ -84,6 +86,33 @@ export default function UsuariosPage() {
       active = false;
     };
   }, []);
+
+  // Presence tracking
+  type PresenceData = { online: boolean; last_seen: any };
+  const [presenceMap, setPresenceMap] = useState<Record<string, PresenceData>>({});
+
+  useEffect(() => {
+    if (!db) return;
+    const unsub = onSnapshot(collection(db, COLLECTIONS.USER_PRESENCE), (snap) => {
+      const map: Record<string, PresenceData> = {};
+      snap.forEach((d) => {
+        map[d.id] = d.data() as PresenceData;
+      });
+      setPresenceMap(map);
+    });
+    return () => unsub();
+  }, []);
+
+  const getPresenceInfo = (uid?: string) => {
+    if (!uid) return { isOnline: false, lastSeen: null as string | null };
+    const p = presenceMap[uid];
+    if (!p) return { isOnline: false, lastSeen: null };
+    const ts = p.last_seen?.toDate ? p.last_seen.toDate() : p.last_seen ? new Date(p.last_seen) : null;
+    // Consider online if last_seen within 2 minutes
+    const isOnline = p.online && ts ? (Date.now() - ts.getTime() < 2 * 60 * 1000) : false;
+    const lastSeen = ts ? ts.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : null;
+    return { isOnline, lastSeen };
+  };
 
   const filtered = useMemo(() => {
     return users.filter((u) => {
@@ -370,6 +399,7 @@ export default function UsuariosPage() {
             const rBadge = roleBadge[(u.role || '').toUpperCase()] || roleBadge.VISUALIZADOR;
             const sBadge = statusBadge[(u.status || '').toUpperCase()] || statusBadge.PENDENTE;
             const isUpdating = updatingId === u.id;
+            const presence = getPresenceInfo(u.id);
             return (
               <div
                 key={u.id}
@@ -377,15 +407,36 @@ export default function UsuariosPage() {
               >
                 {/* User header */}
                 <div className="flex items-center gap-3">
-                  <Avatar name={u.name} photo={u.photoURL} />
+                  <div className="relative">
+                    <Avatar name={u.name} photo={u.photoURL} />
+                    {/* Online dot */}
+                    <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${presence.isOnline ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                  </div>
                   <div className="flex-1 overflow-hidden">
                     <div className="truncate text-sm font-semibold text-ink-900">{u.name}</div>
                     <div className="truncate text-xs text-ink-400">{u.email}</div>
                   </div>
                 </div>
 
+                {/* Presence info */}
+                <div className="mt-2 flex items-center gap-1.5 text-[11px]">
+                  {presence.isOnline ? (
+                    <span className="flex items-center gap-1 text-emerald-600 font-semibold">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                      </span>
+                      Online agora
+                    </span>
+                  ) : presence.lastSeen ? (
+                    <span className="text-ink-400">Último acesso: {presence.lastSeen}</span>
+                  ) : (
+                    <span className="text-ink-300">Nunca acessou</span>
+                  )}
+                </div>
+
                 {/* Badges */}
-                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${rBadge.color}`}>
                     {rBadge.label}
                   </span>
