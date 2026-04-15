@@ -115,8 +115,15 @@ export default function GaleriaPage() {
   const [sendingComment, setSendingComment] = useState(false);
   const [likeAnimating, setLikeAnimating] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+  const [cameraCaption, setCameraCaption] = useState('');
+  const [savingCamera, setSavingCamera] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   // Real-time gallery listener
   useEffect(() => {
@@ -319,6 +326,102 @@ export default function GaleriaPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // ── Camera ──
+  const openCamera = async () => {
+    setShowCamera(true);
+    setCapturedPhoto(null);
+    setCameraCaption('');
+    setCameraReady(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      // Wait for ref to mount
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+          setCameraReady(true);
+        }
+      }, 100);
+    } catch {
+      showToast('Não foi possível acessar a câmera.', 'error');
+      setShowCamera(false);
+    }
+  };
+
+  const closeCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setShowCamera(false);
+    setCapturedPhoto(null);
+    setCameraReady(false);
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    setCapturedPhoto(dataUrl);
+    // Stop stream after capture
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+  };
+
+  const retakePhoto = async () => {
+    setCapturedPhoto(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch {
+      showToast('Erro ao reabrir câmera.', 'error');
+      closeCamera();
+    }
+  };
+
+  const saveCameraPhoto = async () => {
+    if (!db || !capturedPhoto) return;
+    setSavingCamera(true);
+    try {
+      await addDoc(collection(db, COLLECTIONS.GALERIA), {
+        titulo: cameraCaption.trim() || 'Foto da câmera',
+        descricao: '',
+        base64: capturedPhoto,
+        mimeType: 'image/jpeg',
+        tipo: 'imagem',
+        fileName: `camera_${Date.now()}.jpg`,
+        likes: [],
+        authorName: profile?.name || user?.email || 'Membro',
+        created_at: new Date().toISOString(),
+      });
+      closeCamera();
+      showToast('Foto publicada!', 'success');
+    } catch {
+      showToast('Erro ao publicar foto.', 'error');
+    } finally {
+      setSavingCamera(false);
+    }
+  };
+
   const isLiked = (item: GaleriaItem) => user ? item.likes.includes(user.uid) : false;
 
   return (
@@ -327,15 +430,27 @@ export default function GaleriaPage() {
       subtitle="Fotos e vídeos do terreiro e dos eventos."
       actions={
         isEditor ? (
-          <button
-            onClick={() => setShowUpload(!showUpload)}
-            className="flex items-center gap-2 rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700"
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            Nova publicação
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={openCamera}
+              className="flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 shadow-sm hover:border-ink-300 hover:bg-ink-50"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+              Câmera
+            </button>
+            <button
+              onClick={() => setShowUpload(!showUpload)}
+              className="flex items-center gap-2 rounded-xl bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-700"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Nova publicação
+            </button>
+          </div>
         ) : undefined
       }
     >
@@ -383,6 +498,73 @@ export default function GaleriaPage() {
                   className="w-full rounded-xl bg-ink-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60">
                   {saving ? 'Publicando...' : 'Publicar'}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Camera Modal */}
+        {showCamera && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden animate-[slideUp_200ms_ease-out]">
+              <div className="flex items-center justify-between border-b border-ink-100 px-5 py-3">
+                <div className="text-sm font-semibold text-ink-900">📷 Tirar foto</div>
+                <button onClick={closeCamera} className="rounded-lg p-1.5 text-ink-400 hover:bg-ink-50 hover:text-ink-700 transition">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+              <div className="relative bg-black">
+                {!capturedPhoto ? (
+                  <>
+                    <video ref={videoRef} autoPlay playsInline muted className="w-full aspect-[4/3] object-cover" />
+                    {!cameraReady && (
+                      <div className="absolute inset-0 flex items-center justify-center text-white text-sm">Abrindo câmera...</div>
+                    )}
+                  </>
+                ) : (
+                  <img src={capturedPhoto} alt="Foto capturada" className="w-full aspect-[4/3] object-cover" />
+                )}
+              </div>
+              <div className="p-4 flex flex-col gap-3">
+                {!capturedPhoto ? (
+                  <button
+                    onClick={capturePhoto}
+                    disabled={!cameraReady}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-ink-900 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-ink-700 disabled:opacity-60 transition"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <circle cx="12" cy="12" r="4" fill="currentColor" />
+                    </svg>
+                    Capturar
+                  </button>
+                ) : (
+                  <>
+                    <input
+                      className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
+                      placeholder="Legenda (opcional)"
+                      value={cameraCaption}
+                      onChange={(e) => setCameraCaption(e.target.value)}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={retakePhoto}
+                        className="flex-1 rounded-xl border border-ink-200 px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-ink-50 transition"
+                      >
+                        Tirar outra
+                      </button>
+                      <button
+                        onClick={saveCameraPhoto}
+                        disabled={savingCamera}
+                        className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:opacity-60 transition"
+                      >
+                        {savingCamera ? 'Publicando...' : '✓ Publicar'}
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
