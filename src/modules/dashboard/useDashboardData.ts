@@ -166,33 +166,37 @@ export function useDashboardData(user: FirebaseUser | null) {
       setCriticalStock(critical);
     });
 
-    // Next event
+    // Next event — buscar todos e filtrar futuros no client
     const eventsUnsub = onSnapshot(
-      query(collection(db, COLLECTIONS.EVENTS), orderBy('date', 'asc'), limit(1)),
+      collection(db, COLLECTIONS.EVENTS),
       (snapshot) => {
-        const docSnap = snapshot.docs[0];
-        if (!docSnap) { setNextEvent(null); return; }
-        const data = docSnap.data() as { date: string; time: string; title: string };
-        setNextEvent({ date: data.date, time: data.time, title: data.title });
-      }
-    );
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        type EventData = { date: string; time: string; title: string; status?: string; leader?: string };
+        const allEvents = snapshot.docs.map((docSnap) => {
+          const data = docSnap.data() as EventData;
+          return { id: docSnap.id, ...data, parsedDate: parseDateBR(data.date) };
+        });
 
-    // Agenda (next 4 events)
-    const agendaUnsub = onSnapshot(
-      query(collection(db, COLLECTIONS.EVENTS), orderBy('date', 'asc'), limit(4)),
-      (snapshot) => {
+        // Filtrar apenas eventos futuros (hoje ou depois)
+        const futureEvents = allEvents
+          .filter((e) => e.parsedDate.getTime() >= now.getTime())
+          .sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime());
+
+        // Próxima gira
+        const next = futureEvents[0];
+        setNextEvent(next ? { date: next.date, time: next.time, title: next.title } : null);
+
+        // Agenda (próximos 4)
         setAgendaList(
-          snapshot.docs.map((docSnap) => {
-            const data = docSnap.data() as AgendaItem;
-            return {
-              id: docSnap.id,
-              title: data.title,
-              date: data.date,
-              time: data.time,
-              status: data.status || 'pendente',
-              leader: data.leader,
-            };
-          })
+          futureEvents.slice(0, 4).map((e) => ({
+            id: e.id,
+            title: e.title,
+            date: e.date,
+            time: e.time,
+            status: (e.status || 'pendente') as 'confirmado' | 'pendente',
+            leader: e.leader,
+          }))
         );
       }
     );
@@ -245,7 +249,6 @@ export function useDashboardData(user: FirebaseUser | null) {
       membershipUnsub();
       stockUnsub();
       eventsUnsub();
-      agendaUnsub();
       focusUnsub();
       actionsUnsub();
     };
