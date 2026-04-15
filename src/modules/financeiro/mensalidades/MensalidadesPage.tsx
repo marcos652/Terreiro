@@ -44,8 +44,7 @@ export default function MensalidadesPage() {
   const isEditor = normalizedRole === 'EDITOR';
   const permissions = profile?.permissions || [];
   const canEdit = isMaster || (isEditor && permissions.includes('mensalidades'));
-  const monthlyGoalBase = 690;
-  const monthlyGoal = Math.max(0, monthlyGoalBase - goalReduction);
+
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   const defaultNames = [
     'Adriano (Tio Dri)',
@@ -68,7 +67,7 @@ export default function MensalidadesPage() {
     'Rosana',
     'Marcos Vinicius',
   ];
-  const defaultMemberValue = Number((monthlyGoal / defaultNames.length).toFixed(2));
+  const defaultMemberValue = defaultNames.length > 0 ? Number((690 / defaultNames.length).toFixed(2)) : 0;
 
   useEffect(() => {
     let active = true;
@@ -147,6 +146,8 @@ export default function MensalidadesPage() {
     const paidCount = monthMembers.filter((m) => m.status === 'pago').length;
     return { paid, total, pendingCount, paidCount, totalMembers: monthMembers.length };
   }, [members, monthFilter]);
+
+  const monthlyGoal = Math.max(0, totals.total - goalReduction);
 
   const filtered = useMemo(
     () =>
@@ -386,7 +387,7 @@ export default function MensalidadesPage() {
     showToast('Relatório exportado!', 'success');
   };
 
-  const progressPercent = monthlyGoal > 0 ? Math.min(100, (totals.paid / monthlyGoal) * 100) : 0;
+  const progressPercent = monthlyGoal > 0 ? Math.min(100, ((totals.paid - paidReduction) / monthlyGoal) * 100) : 0;
 
   return (
     <AppShell
@@ -444,7 +445,7 @@ export default function MensalidadesPage() {
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
           <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Meta mensal</div>
           <div className="mt-2 text-2xl font-semibold text-ink-900">R$ {formatBRL(monthlyGoal)}</div>
-          <div className="mt-3 text-xs text-ink-500">Meta base: R$ {formatBRL(monthlyGoalBase)}</div>
+          <div className="mt-3 text-xs text-ink-500">Soma de {totals.totalMembers} membros: R$ {formatBRL(totals.total)}</div>
           <div className="mt-3 rounded-xl border border-ink-100 bg-ink-50/80 p-3 text-xs text-ink-600">
             <div className="text-[11px] uppercase tracking-[0.25em] text-ink-400">Retirar valor</div>
             <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
