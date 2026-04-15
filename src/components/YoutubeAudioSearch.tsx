@@ -103,7 +103,7 @@ export default function YoutubeAudioSearch({ variant = "compact" }: YoutubeAudio
               </div>
             </button>
             <a
-              href={`https://www.y2mate.com/youtube/${track.id}`}
+              href={`https://ssyoutube.com/watch?v=${track.id}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-ink-100 text-ink-400 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-600 transition"
@@ -160,7 +160,7 @@ export default function YoutubeAudioSearch({ variant = "compact" }: YoutubeAudio
               <div className="text-ink-400">{current.channel}</div>
             </div>
             <a
-              href={`https://www.y2mate.com/youtube/${current.id}`}
+              href={`https://ssyoutube.com/watch?v=${current.id}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-100 transition flex-shrink-0"
