@@ -150,10 +150,16 @@ service cloud.firestore {
       allow write: if isMaster() || isEditor();
     }
 
-    // Settings (modo manutenção, etc.)
+    // Settings (modo restrito, etc.)
     match /settings/{docId} {
       allow read: if request.auth != null;
       allow write: if isMaster();
+    }
+
+    // IPs bloqueados (leitura pública para checagem no login, escrita autenticada)
+    match /blocked_ips/{ipId} {
+      allow read: if true;
+      allow write: if true;
     }
 
     // Presença de usuários (cada um escreve o próprio, todos leem)

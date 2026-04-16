@@ -35,6 +35,7 @@ export const COLLECTIONS = {
   CHAT_GROUPS: 'chat_groups',
   USER_PRESENCE: 'user_presence',
   SETTINGS: 'settings',
+  BLOCKED_IPS: 'blocked_ips',
 } as const;
 
 // Coleções tipadas
