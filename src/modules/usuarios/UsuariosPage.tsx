@@ -126,9 +126,9 @@ export default function UsuariosPage() {
       const next = !maintenanceMode;
       await setDoc(doc(db, COLLECTIONS.SETTINGS, 'app'), { maintenance_mode: next }, { merge: true });
       setMaintenanceMode(next);
-      showToast(next ? 'Modo manutenção ATIVADO — somente Masters acessam.' : 'Modo manutenção DESATIVADO — todos podem acessar.', next ? 'warning' : 'success');
+      showToast(next ? 'Modo restrito ATIVADO — somente Masters acessam.' : 'Modo restrito DESATIVADO — todos podem acessar.', next ? 'warning' : 'success');
     } catch {
-      showToast('Erro ao alterar modo manutenção.', 'error');
+      showToast('Erro ao alterar modo restrito.', 'error');
     } finally {
       setTogglingMaintenance(false);
     }
@@ -345,7 +345,7 @@ export default function UsuariosPage() {
             </div>
             <div>
               <div className="text-sm font-semibold text-ink-900">
-                Modo Manutenção
+                Modo Restrito
               </div>
               <div className="text-xs text-ink-400">
                 {maintenanceMode
