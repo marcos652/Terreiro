@@ -441,8 +441,7 @@ export default function LoginPage() {
                 </p>
               </div>
 
-
-
+              <div className="flex flex-col gap-4">
                 <div>
                   <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/30">E-mail</label>
                   <input
