@@ -244,6 +244,45 @@ export default function LoginPage() {
                 <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 backdrop-blur">⭐ Confiável</span>
               </div>
 
+              {/* Links — Instagram + Quem Somos */}
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href="https://www.instagram.com/umbanda_luz_e_fe/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 backdrop-blur-xl transition-all duration-300 hover:border-pink-500/30 hover:bg-gradient-to-r hover:from-pink-500/10 hover:to-purple-500/10 hover:shadow-lg hover:shadow-pink-500/10"
+                >
+                  <svg viewBox="0 0 24 24" className="h-5 w-5 text-pink-400 transition-transform duration-300 group-hover:scale-110" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="2" width="20" height="20" rx="5" />
+                    <circle cx="12" cy="12" r="5" />
+                    <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none" />
+                  </svg>
+                  <span className="text-sm font-semibold text-white/70 transition-colors group-hover:text-white">
+                    @umbanda_luz_e_fe
+                  </span>
+                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-white/30 transition-all duration-300 group-hover:translate-x-0.5 group-hover:text-white/60" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7 17L17 7M17 7H7M17 7v10" />
+                  </svg>
+                </a>
+
+                <a
+                  href="/quem-somos"
+                  className="group inline-flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 backdrop-blur-xl transition-all duration-300 hover:border-indigo-500/30 hover:bg-gradient-to-r hover:from-indigo-500/10 hover:to-purple-500/10 hover:shadow-lg hover:shadow-indigo-500/10"
+                >
+                  <svg viewBox="0 0 24 24" className="h-5 w-5 text-indigo-400 transition-transform duration-300 group-hover:scale-110" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+                  </svg>
+                  <span className="text-sm font-semibold text-white/70 transition-colors group-hover:text-white">
+                    Quem Somos
+                  </span>
+                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-white/30 transition-all duration-300 group-hover:translate-x-0.5 group-hover:text-white/60" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </a>
+              </div>
+
               {/* ── Next Event Card ── */}
               {!eventLoading && nextEvent && (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl">
@@ -285,12 +324,35 @@ export default function LoginPage() {
                       {daysUntil(nextEvent.date, nextEvent.time)}
                     </span>
                   </div>
+
+                  {/* Endereço do terreiro */}
+                  <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3">
+                    <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1118 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <div className="text-xs leading-relaxed text-white/50">
+                      <div className="font-semibold text-white/70">Estrada vicinal Marília x Avencas, km 7</div>
+                      <div>Sítio Alto da Serra</div>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {!eventLoading && !nextEvent && (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl text-center">
                   <div className="text-sm text-white/40">Nenhum evento futuro agendado</div>
+                  {/* Endereço do terreiro */}
+                  <div className="mt-4 flex items-center justify-center gap-2.5 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3">
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 flex-shrink-0 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1118 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <div className="text-xs leading-relaxed text-white/50 text-left">
+                      <div className="font-semibold text-white/70">Estrada vicinal Marília x Avencas, km 7</div>
+                      <div>Sítio Alto da Serra</div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
