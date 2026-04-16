@@ -243,7 +243,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      await logService.addLog(normalizedEmail, 'Fez login no sistema');
+      await logService.addLog(normalizedEmail, `Fez login no sistema (IP: ${clientIp})`);
       router.push('/');
     } catch {
       setError('Usuário ou senha inválidos.');
