@@ -13,6 +13,7 @@ import {
   query,
 } from 'firebase/firestore';
 import { COLLECTIONS } from '@services/firestoreCollections';
+import { addCashTransaction } from '@services/transactionService';
 
 type Doacao = {
   id: string;
@@ -66,18 +67,38 @@ export default function DoacoesPage() {
     }
     setSaving(true);
     try {
+      const valorNum = parseFloat(valor);
+      const dataStr = data || new Date().toLocaleDateString('pt-BR');
+      const nomeDoador = doador.trim();
+      const desc = descricao.trim();
+
       await addDoc(collection(db, COLLECTIONS.DOACOES), {
-        doador: doador.trim(),
-        valor: parseFloat(valor),
-        data: data || new Date().toLocaleDateString('pt-BR'),
-        descricao: descricao.trim(),
+        doador: nomeDoador,
+        valor: valorNum,
+        data: dataStr,
+        descricao: desc,
         created_at: new Date().toISOString(),
       });
+
+      // Integração com Caixa: cria transação de entrada
+      try {
+        await addCashTransaction({
+          label: `Doação — ${nomeDoador}${desc ? ` (${desc})` : ''}`,
+          type: 'entrada',
+          amount: valorNum,
+          date: dataStr,
+          method: 'doacao',
+          created_at: new Date().toISOString(),
+        }, profile?.email);
+      } catch (err) {
+        console.error('Erro ao registrar doação no caixa:', err);
+      }
+
       setDoador('');
       setValor('');
       setData('');
       setDescricao('');
-      showToast('Doação registrada!', 'success');
+      showToast('Doação registrada e adicionada ao caixa!', 'success');
       fetchDoacoes();
     } catch {
       showToast('Erro ao salvar doação.', 'error');
@@ -90,8 +111,28 @@ export default function DoacoesPage() {
     if (!db || !isMaster) return;
     if (!window.confirm('Remover esta doação?')) return;
     try {
+      // Busca dados da doação antes de remover para limpar o caixa
+      const doacaoRemovida = doacoes.find((d) => d.id === id);
       await deleteDoc(doc(db, COLLECTIONS.DOACOES, id));
-      showToast('Doação removida.', 'success');
+
+      // Remove transação correspondente do caixa
+      if (doacaoRemovida) {
+        try {
+          const snapshot = await getDocs(collection(db, COLLECTIONS.CASH_TRANSACTIONS));
+          const searchLabel = `Doação — ${doacaoRemovida.doador}`;
+          const matchingDoc = snapshot.docs.find((d) => {
+            const data = d.data();
+            return data.method === 'doacao' && data.label?.startsWith(searchLabel) && data.amount === doacaoRemovida.valor;
+          });
+          if (matchingDoc) {
+            await deleteDoc(doc(db, COLLECTIONS.CASH_TRANSACTIONS, matchingDoc.id));
+          }
+        } catch (err) {
+          console.error('Erro ao remover doação do caixa:', err);
+        }
+      }
+
+      showToast('Doação removida do registro e do caixa.', 'success');
       fetchDoacoes();
     } catch {
       showToast('Erro ao remover.', 'error');
