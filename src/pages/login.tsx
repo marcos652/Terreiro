@@ -6,6 +6,7 @@ import { auth, db, firebaseConfig, firebaseConfigMissing } from '@services/fireb
 import { getUserById, upsertUser } from '@services/userService';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { COLLECTIONS } from '@services/firestoreCollections';
+import { logService } from '@services/logService';
 
 type NextEvent = {
   title: string;
@@ -117,6 +118,7 @@ export default function LoginPage() {
           });
           setInfo('Conta criada e aprovada. Você já está logado.');
           setLoading(false);
+          await logService.addLog(normalizedEmail, 'Criou conta e fez login (registro)');
           router.push('/');
           return;
         } catch (err: any) {
@@ -177,6 +179,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
+      await logService.addLog(normalizedEmail, 'Fez login no sistema');
       router.push('/');
     } catch {
       setError('Usuário ou senha inválidos.');
