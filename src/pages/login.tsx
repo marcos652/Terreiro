@@ -63,6 +63,7 @@ export default function LoginPage() {
   const [eventLoading, setEventLoading] = useState(true);
   const [failedAttempts, setFailedAttempts] = useState<Record<string, number>>({});
   const [clientIp, setClientIp] = useState('unknown');
+  const [clientLocation, setClientLocation] = useState('');
   const [ipBlocked, setIpBlocked] = useState(false);
   const router = useRouter();
 
@@ -74,6 +75,8 @@ export default function LoginPage() {
         const data = await res.json();
         const ip = data.ip || 'unknown';
         setClientIp(ip);
+        const loc = [data.city, data.region].filter(Boolean).join(', ');
+        if (loc) setClientLocation(loc);
         // Check if IP is blocked in Firestore
         if (db && ip !== 'unknown') {
           const ipKey = ip.replace(/\./g, '_');
@@ -206,7 +209,7 @@ export default function LoginPage() {
             }
           } catch {}
 
-          await logService.addLog(normalizedEmail, `Bloqueado após 3 tentativas de login (IP: ${clientIp})`);
+          await logService.addLog(normalizedEmail, `Bloqueado após 3 tentativas de login (IP: ${clientIp}${clientLocation ? ` - ${clientLocation}` : ''})`);
           setError('Conta bloqueada por excesso de tentativas. Fale com o administrador.');
         } else {
           setError(`${isNotFound ? 'Usuário não encontrado ou senha inválida' : 'Senha inválida'}. ${remaining} tentativa${remaining !== 1 ? 's' : ''} restante${remaining !== 1 ? 's' : ''}.`);
@@ -243,7 +246,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      await logService.addLog(normalizedEmail, `Fez login no sistema (IP: ${clientIp})`);
+      await logService.addLog(normalizedEmail, `Fez login no sistema (IP: ${clientIp}${clientLocation ? ` - ${clientLocation}` : ''})`);
       router.push('/');
     } catch {
       setError('Usuário ou senha inválidos.');
