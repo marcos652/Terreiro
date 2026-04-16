@@ -11,6 +11,7 @@ export interface MembershipItem {
   lastPayment: string;
   created_at: string;
   month?: string;
+  phone?: string;
 }
 
 export async function addMembership(item: Omit<MembershipItem, 'id'>, userEmail?: string) {
