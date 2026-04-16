@@ -40,6 +40,8 @@ export default function MensalidadesPage() {
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberValue, setNewMemberValue] = useState('');
   const [newMemberPhone, setNewMemberPhone] = useState('');
+  const [editingPhoneId, setEditingPhoneId] = useState<string | null>(null);
+  const [editingPhoneValue, setEditingPhoneValue] = useState('');
   const normalizedRole = (profile?.role || '').trim().toUpperCase();
   const isMaster = normalizedRole === 'MASTER';
   const isEditor = normalizedRole === 'EDITOR';
@@ -346,6 +348,18 @@ export default function MensalidadesPage() {
     showToast(`${member.name} removido.`, 'success');
   };
 
+  const handleSavePhone = async (member: MembershipItem) => {
+    if (!member.id || !canEdit) return;
+    const phone = editingPhoneValue.trim();
+    await updateMembership(member.id, { phone: phone || undefined } as any, profile?.email);
+    setMembers((prev) =>
+      prev.map((m) => (m.id === member.id ? { ...m, phone: phone || undefined } : m))
+    );
+    setEditingPhoneId(null);
+    setEditingPhoneValue('');
+    showToast(phone ? `Telefone de ${member.name} salvo!` : `Telefone de ${member.name} removido.`, 'success');
+  };
+
   const handleApplyGoalReduction = () => {
     const value = Number(goalReductionInput);
     if (!value || value <= 0) return;
@@ -647,11 +661,44 @@ export default function MensalidadesPage() {
             {filtered.map((member) => (
               <div key={member.id} className="rounded-2xl border border-ink-100 p-4">
                 <div className="flex items-center justify-between">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-ink-900">{member.name}</div>
                     <div className="text-xs text-ink-400">
                       R$ {formatBRL(member.value)} • Último pagamento: {lastPaymentByName.get(member.name) || '—'}
                     </div>
+                    {/* Telefone inline */}
+                    {editingPhoneId === member.id ? (
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        <input
+                          className="w-36 rounded-lg border border-ink-200 bg-ink-50 px-2 py-1 text-xs text-ink-700 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-100"
+                          placeholder="14991234567"
+                          value={editingPhoneValue}
+                          onChange={(e) => setEditingPhoneValue(e.target.value)}
+                          autoFocus
+                          onKeyDown={(e) => { if (e.key === 'Enter') handleSavePhone(member); if (e.key === 'Escape') setEditingPhoneId(null); }}
+                        />
+                        <button
+                          onClick={() => handleSavePhone(member)}
+                          className="rounded-lg bg-emerald-500 px-2 py-1 text-[10px] font-semibold text-white hover:bg-emerald-600"
+                        >
+                          Salvar
+                        </button>
+                        <button
+                          onClick={() => setEditingPhoneId(null)}
+                          className="rounded-lg border border-ink-200 px-2 py-1 text-[10px] font-semibold text-ink-500 hover:bg-ink-100"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { if (!canEdit) return; setEditingPhoneId(member.id || null); setEditingPhoneValue(member.phone || ''); }}
+                        className="mt-1 text-[11px] text-indigo-400 hover:text-indigo-600 hover:underline disabled:opacity-50"
+                        disabled={!canEdit}
+                      >
+                        {member.phone ? `📞 ${member.phone}` : '➕ Adicionar telefone'}
+                      </button>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span
