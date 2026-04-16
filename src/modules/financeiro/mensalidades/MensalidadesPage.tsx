@@ -332,7 +332,7 @@ export default function MensalidadesPage() {
   const handleApplyGoalReduction = () => {
     const value = Number(goalReductionInput);
     if (!value || value <= 0) return;
-    setGoalReduction((prev) => Math.min(monthlyGoalBase, prev + value));
+    setGoalReduction((prev) => Math.min(totals.total, prev + value));
     setGoalReductionInput('');
   };
 
