@@ -113,13 +113,13 @@ export default function LoginPage() {
             name: normalizedEmail.split('@')[0],
             email: normalizedEmail,
             role: 'VISUALIZADOR',
-            status: 'APROVADO',
+            status: 'PENDENTE',
             created_at: new Date().toISOString(),
           });
-          setInfo('Conta criada e aprovada. Você já está logado.');
+          await logService.addLog(normalizedEmail, 'Criou conta (aguardando aprovação)');
+          await signOut(auth);
+          setInfo('Conta criada com sucesso! Aguarde a aprovação do administrador para acessar o sistema.');
           setLoading(false);
-          await logService.addLog(normalizedEmail, 'Criou conta e fez login (registro)');
-          router.push('/');
           return;
         } catch (err: any) {
           const code = err?.code || '';
@@ -158,7 +158,7 @@ export default function LoginPage() {
           name: normalizedEmail.split('@')[0],
           email: normalizedEmail,
           role: 'VISUALIZADOR' as const,
-          status: 'APROVADO' as const,
+          status: 'PENDENTE' as const,
           created_at: new Date().toISOString(),
         };
         try {
