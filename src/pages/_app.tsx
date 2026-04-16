@@ -53,6 +53,12 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
           </span>
           Modo restrito ativado
         </div>
+        <button
+          onClick={() => router.push('/login')}
+          className="mt-6 rounded-xl border border-white/20 bg-white/10 px-6 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
+        >
+          ← Voltar ao Login
+        </button>
       </div>
     );
   }
