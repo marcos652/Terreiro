@@ -6,7 +6,7 @@ import { addUser, deleteUser, getUsers, updateUser, upsertUserById, User } from 
 import { createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
 import { auth, db, firebaseConfig } from '@services/firebase';
 import { initializeApp, getApps } from 'firebase/app';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
 import { COLLECTIONS } from '@services/firestoreCollections';
 
 type RoleFilter = 'ALL' | 'MASTER' | 'EDITOR' | 'VISUALIZADOR';
@@ -51,6 +51,9 @@ export default function UsuariosPage() {
   const [savingDetail, setSavingDetail] = useState(false);
   const [normalizedRoles, setNormalizedRoles] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [maintenanceLoading, setMaintenanceLoading] = useState(true);
+  const [togglingMaintenance, setTogglingMaintenance] = useState(false);
   const { profile, user } = useAuth();
   const { showToast } = useToast();
   const BOOTSTRAP_UID = 'rpdLNx3X4CZhFvB6O9bvXbFA72y1';
@@ -102,6 +105,34 @@ export default function UsuariosPage() {
     });
     return () => unsub();
   }, []);
+
+  // Maintenance mode listener
+  useEffect(() => {
+    if (!db) { setMaintenanceLoading(false); return; }
+    const settingsRef = doc(db, COLLECTIONS.SETTINGS, 'app');
+    const unsub = onSnapshot(settingsRef, (snap) => {
+      if (snap.exists()) {
+        setMaintenanceMode(!!snap.data()?.maintenance_mode);
+      }
+      setMaintenanceLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleToggleMaintenance = async () => {
+    if (!db || !isMaster) return;
+    setTogglingMaintenance(true);
+    try {
+      const next = !maintenanceMode;
+      await setDoc(doc(db, COLLECTIONS.SETTINGS, 'app'), { maintenance_mode: next }, { merge: true });
+      setMaintenanceMode(next);
+      showToast(next ? 'Modo manutenção ATIVADO — somente Masters acessam.' : 'Modo manutenção DESATIVADO — todos podem acessar.', next ? 'warning' : 'success');
+    } catch {
+      showToast('Erro ao alterar modo manutenção.', 'error');
+    } finally {
+      setTogglingMaintenance(false);
+    }
+  };
 
   const getPresenceInfo = (uid?: string) => {
     if (!uid) return { isOnline: false, lastSeen: null as string | null };
@@ -299,6 +330,46 @@ export default function UsuariosPage() {
         ) : undefined
       }
     >
+      {/* Maintenance mode toggle — only MASTER */}
+      {isMaster && !maintenanceLoading && (
+        <div className={`mb-6 flex items-center justify-between rounded-2xl border p-4 shadow-floating transition-colors ${
+          maintenanceMode
+            ? 'border-rose-200 bg-rose-50'
+            : 'border-ink-100 bg-white'
+        }`}>
+          <div className="flex items-center gap-3">
+            <div className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg ${
+              maintenanceMode ? 'bg-rose-100' : 'bg-ink-100'
+            }`}>
+              {maintenanceMode ? '🔒' : '🔓'}
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-ink-900">
+                Modo Manutenção
+              </div>
+              <div className="text-xs text-ink-400">
+                {maintenanceMode
+                  ? 'ATIVADO — Somente Masters conseguem acessar o site'
+                  : 'Desativado — Todos os usuários podem acessar normalmente'}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={handleToggleMaintenance}
+            disabled={togglingMaintenance}
+            className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none disabled:opacity-60 ${
+              maintenanceMode ? 'bg-rose-500' : 'bg-ink-200'
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${
+                maintenanceMode ? 'translate-x-8' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+      )}
+
       {/* Stats row */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
         {[

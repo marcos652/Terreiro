@@ -34,6 +34,7 @@ export const COLLECTIONS = {
   FUNDAMENTOS: 'fundamentos',
   CHAT_GROUPS: 'chat_groups',
   USER_PRESENCE: 'user_presence',
+  SETTINGS: 'settings',
 } as const;
 
 // Coleções tipadas
