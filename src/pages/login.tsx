@@ -377,17 +377,7 @@ export default function LoginPage() {
                 </p>
               </div>
 
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-2 text-xs font-semibold">
-                  <button type="button" onClick={() => setMode('login')}
-                    className={`rounded-full px-4 py-1.5 transition ${mode === 'login' ? 'bg-indigo-500 text-white' : 'bg-white/10 text-white/50 hover:bg-white/15'}`}>
-                    Entrar
-                  </button>
-                  <button type="button" onClick={() => setMode('register')}
-                    className={`rounded-full px-4 py-1.5 transition ${mode === 'register' ? 'bg-indigo-500 text-white' : 'bg-white/10 text-white/50 hover:bg-white/15'}`}>
-                    Criar conta
-                  </button>
-                </div>
+
 
                 <div>
                   <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/30">E-mail</label>
@@ -449,7 +439,7 @@ export default function LoginPage() {
                       </svg>
                       Processando...
                     </span>
-                  ) : mode === 'register' ? 'Criar conta' : 'Entrar'}
+                  ) : 'Entrar'}
                 </button>
 
                 <button type="button" onClick={handleReset}
