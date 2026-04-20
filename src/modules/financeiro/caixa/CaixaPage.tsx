@@ -15,6 +15,29 @@ import { COLLECTIONS } from '@services/firestoreCollections';
 
 const GOAL_DOC_ID = 'caixa_goal';
 
+// Máscara de moeda brasileira: 1500 -> 1.500,00
+const formatCurrencyInput = (raw: string): string => {
+  // Remove tudo que não é dígito
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return '';
+  // Converte para centavos
+  const cents = parseInt(digits, 10);
+  // Formata como BRL
+  const formatted = (cents / 100).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return formatted;
+};
+
+// Converte "1.500,00" -> 1500.00
+const parseBRLCurrency = (formatted: string): number => {
+  if (!formatted) return 0;
+  const cleaned = formatted.replace(/\./g, '').replace(',', '.');
+  const val = parseFloat(cleaned);
+  return Number.isNaN(val) ? 0 : val;
+};
+
 export default function CaixaPage() {
   const formatBRL = (value: number) =>
     new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
@@ -271,10 +294,15 @@ export default function CaixaPage() {
     }
   };
 
+  const handleAmountChange = (raw: string) => {
+    const masked = formatCurrencyInput(raw);
+    setForm((prev) => ({ ...prev, amount: masked }));
+  };
+
   const handleAdd = async () => {
     if (!canEdit) return;
-    const amountNumber = Number(String(form.amount).replace(',', '.'));
-    if (!form.label || Number.isNaN(amountNumber) || amountNumber <= 0) {
+    const amountNumber = parseBRLCurrency(form.amount);
+    if (!form.label || amountNumber <= 0) {
       setErrorMsg('Preencha descrição e valor numérico maior que zero.');
       return;
     }
@@ -493,14 +521,18 @@ export default function CaixaPage() {
               onChange={(event) => setForm((prev) => ({ ...prev, label: event.target.value }))}
               disabled={!canEdit}
             />
-            <input
-              type="number"
-              className="rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
-              placeholder="Valor"
-              value={form.amount}
-              onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))}
-              disabled={!canEdit}
-            />
+            <div className="relative">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-ink-400">R$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="w-full rounded-xl border border-ink-100 bg-white py-2 pl-10 pr-3 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
+                placeholder="0,00"
+                value={form.amount}
+                onChange={(event) => handleAmountChange(event.target.value)}
+                disabled={!canEdit}
+              />
+            </div>
             <div className="flex gap-2">
               <select
                 className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
