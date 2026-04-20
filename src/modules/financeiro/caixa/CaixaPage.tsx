@@ -118,7 +118,7 @@ export default function CaixaPage() {
     return transactions.filter((t) => t.type === filter);
   }, [transactions, filter]);
 
-  const progressPercent = goalValue > 0 ? Math.min(100, (totals.entradas / goalValue) * 100) : 0;
+  const progressPercent = goalValue > 0 ? Math.min(100, (totals.saldo / goalValue) * 100) : 0;
 
   const handleSaveGoal = async () => {
     const parsed = Number(String(goalInput).replace(',', '.'));
@@ -382,7 +382,7 @@ export default function CaixaPage() {
             <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Meta do Caixa</div>
             {goalValue > 0 ? (
               <div className="mt-1 text-lg font-semibold text-ink-900">
-                R$ {formatBRL(totals.entradas)}{' '}
+                R$ {formatBRL(totals.saldo)}{' '}
                 <span className="text-sm font-normal text-ink-400">/ R$ {formatBRL(goalValue)}</span>
               </div>
             ) : (
@@ -467,14 +467,14 @@ export default function CaixaPage() {
                 </button>
               )}
             </div>
-            {goalValue > 0 && totals.entradas >= goalValue && (
+            {goalValue > 0 && totals.saldo >= goalValue && (
               <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
                 <span>🎉</span> Meta atingida! Parabéns!
               </div>
             )}
-            {goalValue > 0 && totals.entradas < goalValue && (
+            {goalValue > 0 && totals.saldo < goalValue && (
               <div className="mt-2 text-[11px] text-ink-400">
-                Faltam R$ {formatBRL(goalValue - totals.entradas)} para atingir a meta
+                Faltam R$ {formatBRL(goalValue - totals.saldo)} para atingir a meta
               </div>
             )}
           </div>
@@ -482,9 +482,9 @@ export default function CaixaPage() {
 
         {!canEdit && goalValue > 0 && (
           <div className="mt-3 text-xs text-ink-400">
-            {totals.entradas >= goalValue
+            {totals.saldo >= goalValue
               ? '🎉 Meta atingida!'
-              : `Faltam R$ ${formatBRL(goalValue - totals.entradas)} para atingir a meta`}
+              : `Faltam R$ ${formatBRL(goalValue - totals.saldo)} para atingir a meta`}
           </div>
         )}
       </div>
