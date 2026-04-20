@@ -83,6 +83,8 @@ export function useDashboardData(user: FirebaseUser | null) {
   const [focusSavedAt, setFocusSavedAt] = useState('');
   const [focusHistory, setFocusHistory] = useState<FocusItem[]>([]);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
+  const [donationsTotal, setDonationsTotal] = useState(0);
+  const [cashExpenses, setCashExpenses] = useState(0);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -122,6 +124,7 @@ export function useDashboardData(user: FirebaseUser | null) {
       });
 
       setCashTotal(entradas - saidas);
+      setCashExpenses(saidas);
       const sorted = Array.from(byDate.entries()).sort(
         (a, b) => parseDateBR(a[0]).getTime() - parseDateBR(b[0]).getTime()
       );
@@ -244,6 +247,16 @@ export function useDashboardData(user: FirebaseUser | null) {
       }
     );
 
+    // Donations total
+    const doacoesUnsub = onSnapshot(collection(db, COLLECTIONS.DOACOES), (snapshot) => {
+      let total = 0;
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data() as { valor?: number };
+        total += Number(data.valor || 0);
+      });
+      setDonationsTotal(total);
+    });
+
     return () => {
       cashUnsub();
       membershipUnsub();
@@ -251,6 +264,7 @@ export function useDashboardData(user: FirebaseUser | null) {
       eventsUnsub();
       focusUnsub();
       actionsUnsub();
+      doacoesUnsub();
     };
   }, [user]);
 
@@ -333,6 +347,8 @@ export function useDashboardData(user: FirebaseUser | null) {
     focusSavedNote, focusSavedAt, focusHistory, saveFocusNote,
     // Actions
     actionItems, addAction, updateActionStatus, deleteAction,
+    // DRE
+    donationsTotal, cashExpenses,
     // Helpers
     formatBRL,
   };

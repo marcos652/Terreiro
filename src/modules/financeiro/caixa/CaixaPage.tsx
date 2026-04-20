@@ -8,6 +8,8 @@ import {
 } from '@services/transactionService';
 import { getMemberships, MembershipItem } from '@services/membershipService';
 import { useAuth } from '@contexts/AuthContext';
+import { useToast } from '@contexts/ToastContext';
+import { SkeletonCards, SkeletonList } from '@components/SkeletonLoader';
 import { logService } from '@services/logService';
 import { db } from '@services/firebase';
 import { doc, getDoc, setDoc, collection, getDocs, orderBy, query } from 'firebase/firestore';
@@ -42,6 +44,7 @@ export default function CaixaPage() {
   const formatBRL = (value: number) =>
     new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
   const { user, loading: authLoading, profile } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
   const normalizedRole = (profile?.role || '').trim().toUpperCase();
   const isMaster = normalizedRole === 'MASTER';
@@ -50,6 +53,7 @@ export default function CaixaPage() {
   const canEdit = isMaster || (isEditor && permissions.includes('caixa'));
   const [transactions, setTransactions] = useState<CashTransaction[]>([]);
   const [filter, setFilter] = useState<'todos' | 'entrada' | 'saida'>('todos');
+  const [monthFilter, setMonthFilter] = useState('');
   const [form, setForm] = useState({ label: '', amount: '', type: 'entrada', method: 'Pix' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -112,11 +116,23 @@ export default function CaixaPage() {
   }, [transactions]);
 
   const filtered = useMemo(() => {
-    if (filter === 'todos') {
-      return transactions;
+    let result = transactions;
+    // Filtro por tipo
+    if (filter !== 'todos') {
+      result = result.filter((t) => t.type === filter);
     }
-    return transactions.filter((t) => t.type === filter);
-  }, [transactions, filter]);
+    // Filtro por mês
+    if (monthFilter) {
+      result = result.filter((t) => {
+        if (!t.date) return false;
+        const parts = t.date.split('/');
+        if (parts.length !== 3) return false;
+        const key = `${parts[2]}-${parts[1]}`;
+        return key === monthFilter;
+      });
+    }
+    return result;
+  }, [transactions, filter, monthFilter]);
 
   const progressPercent = goalValue > 0 ? Math.min(100, (totals.saldo / goalValue) * 100) : 0;
 
@@ -320,6 +336,10 @@ export default function CaixaPage() {
       const id = await addCashTransaction(payload, profile?.email);
       setTransactions((prev) => [{ id, ...payload }, ...prev]);
       setForm({ label: '', amount: '', type: 'entrada', method: 'Pix' });
+      showToast(
+        `${payload.type === 'entrada' ? 'Entrada' : 'Saída'} de R$ ${formatBRL(amountNumber)} registrada!`,
+        payload.type === 'entrada' ? 'success' : 'info'
+      );
     } catch (err: any) {
       console.error('Erro ao registrar movimento', err);
       const code = err?.code || '';
@@ -489,26 +509,43 @@ export default function CaixaPage() {
         )}
       </div>
 
+      {loading ? <SkeletonCards /> : (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-ink-100 bg-white p-4 shadow-floating">
-          <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Saldo</div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-500">
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+            </div>
+            <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Saldo</div>
+          </div>
           <div className="mt-2 text-2xl font-semibold text-ink-900">
             {transactions.length > 0 ? `R$ ${formatBRL(totals.saldo)}` : '—'}
           </div>
         </div>
         <div className="rounded-2xl border border-ink-100 bg-white p-4 shadow-floating">
-          <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Entradas</div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-500">
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+            </div>
+            <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Entradas</div>
+          </div>
           <div className="mt-2 text-2xl font-semibold text-emerald-600">
             {transactions.length > 0 ? `R$ ${formatBRL(totals.entradas)}` : '—'}
           </div>
         </div>
         <div className="rounded-2xl border border-ink-100 bg-white p-4 shadow-floating">
-          <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Saídas</div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-50 text-rose-500">
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M19 12l-7 7-7-7" /></svg>
+            </div>
+            <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Saídas</div>
+          </div>
           <div className="mt-2 text-2xl font-semibold text-rose-500">
             {transactions.length > 0 ? `R$ ${formatBRL(totals.saidas)}` : '—'}
           </div>
         </div>
       </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_2fr]">
         <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
@@ -578,29 +615,45 @@ export default function CaixaPage() {
               <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Histórico</div>
               <div className="text-lg font-semibold text-ink-900">Movimentos recentes</div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-ink-400">
-              <button
-                onClick={() => setFilter('todos')}
-                className={`rounded-full px-3 py-1 ${filter === 'todos' ? 'bg-ink-900 text-white' : 'bg-ink-100'}`}
-              >
-                Todos
-              </button>
-              <button
-                onClick={() => setFilter('entrada')}
-                className={`rounded-full px-3 py-1 ${
-                  filter === 'entrada' ? 'bg-emerald-500 text-white' : 'bg-ink-100'
-                }`}
-              >
-                Entradas
-              </button>
-              <button
-                onClick={() => setFilter('saida')}
-                className={`rounded-full px-3 py-1 ${
-                  filter === 'saida' ? 'bg-rose-500 text-white' : 'bg-ink-100'
-                }`}
-              >
-                Saídas
-              </button>
+            <div className="flex flex-col gap-2 md:flex-row md:items-center">
+              <input
+                type="month"
+                className="rounded-xl border border-ink-100 bg-white px-3 py-1.5 text-xs text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+              />
+              {monthFilter && (
+                <button
+                  onClick={() => setMonthFilter('')}
+                  className="rounded-full bg-ink-100 px-2.5 py-1 text-[10px] font-semibold text-ink-500 hover:bg-ink-200"
+                >
+                  Limpar filtro
+                </button>
+              )}
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-ink-400">
+                <button
+                  onClick={() => setFilter('todos')}
+                  className={`rounded-full px-3 py-1 ${filter === 'todos' ? 'bg-ink-900 text-white' : 'bg-ink-100'}`}
+                >
+                  Todos
+                </button>
+                <button
+                  onClick={() => setFilter('entrada')}
+                  className={`rounded-full px-3 py-1 ${
+                    filter === 'entrada' ? 'bg-emerald-500 text-white' : 'bg-ink-100'
+                  }`}
+                >
+                  Entradas
+                </button>
+                <button
+                  onClick={() => setFilter('saida')}
+                  className={`rounded-full px-3 py-1 ${
+                    filter === 'saida' ? 'bg-rose-500 text-white' : 'bg-ink-100'
+                  }`}
+                >
+                  Saídas
+                </button>
+              </div>
             </div>
           </div>
           <div className="mt-4 flex flex-col gap-3">
@@ -623,11 +676,13 @@ export default function CaixaPage() {
                 </div>
               </div>
             ))}
-            {loading && (
-              <div className="py-6 text-center text-sm text-ink-400">Carregando lançamentos...</div>
-            )}
+            {loading && <SkeletonList />}
             {!loading && filtered.length === 0 && (
-              <div className="py-8 text-center text-sm text-ink-400">Nenhum lançamento encontrado.</div>
+              <div className="flex flex-col items-center gap-3 py-10">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-ink-50 text-2xl">📋</div>
+                <div className="text-sm font-medium text-ink-500">Nenhum lançamento encontrado</div>
+                <div className="text-xs text-ink-400">Registre um movimento para começar</div>
+              </div>
             )}
           </div>
         </div>

@@ -4,6 +4,8 @@ import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@contexts/ToastContext';
 import AppShell from '@components/AppShell';
 import LineChart from '@components/charts/LineChart';
+import ConfirmModal from '@components/ConfirmModal';
+import SkeletonLoader from '@components/SkeletonLoader';
 import { seedFirestoreBaseData } from '@services/seedService';
 import { db } from '@services/firebase';
 import {
@@ -26,6 +28,7 @@ const DashboardPage = () => {
   const [clearingCash, setClearingCash] = useState(false);
   const [actionText, setActionText] = useState('');
   const [actionSaving, setActionSaving] = useState(false);
+  const [confirmClearCash, setConfirmClearCash] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -49,8 +52,6 @@ const DashboardPage = () => {
 
   const handleClearCash = async () => {
     if (!db) { showToast('Configuração do Firebase não encontrada.', 'error'); return; }
-    const confirmed = window.confirm('Deseja apagar todos os movimentos do caixa?');
-    if (!confirmed) return;
     setClearingCash(true);
     try {
       await dashboard.clearCashTransactions();
@@ -59,6 +60,7 @@ const DashboardPage = () => {
       showToast('Erro ao limpar caixa.', 'error');
     } finally {
       setClearingCash(false);
+      setConfirmClearCash(false);
     }
   };
 
@@ -117,10 +119,11 @@ const DashboardPage = () => {
   };
 
   if (loading || (!user && typeof window !== 'undefined')) {
-    return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
+    return <SkeletonLoader />;
   }
 
   return (
+    <>
     <AppShell
       title="Dashboard"
       subtitle="Panorama geral das finanças, presença e operações do terreiro."
@@ -193,6 +196,66 @@ const DashboardPage = () => {
         </div>
       </div>
 
+      {/* ── DRE Simplificado ── */}
+      <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-floating">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-[0.2em] text-ink-300">Demonstrativo Financeiro</div>
+            <div className="text-lg font-semibold text-ink-900">Receita vs Despesa</div>
+          </div>
+          <span className="rounded-full bg-purple-100 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-purple-700">Consolidado</span>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+              </div>
+              <div className="text-[11px] uppercase tracking-[0.15em] text-emerald-600">Receita Total</div>
+            </div>
+            <div className="mt-2 text-xl font-semibold text-emerald-700">
+              R$ {formatBRL((dashboard.membersPaid?.paid || 0) + (dashboard.donationsTotal || 0))}
+            </div>
+            <div className="mt-1 text-[10px] text-emerald-500">
+              Mensalidades R$ {formatBRL(dashboard.membersPaid?.paid || 0)} + Doações R$ {formatBRL(dashboard.donationsTotal || 0)}
+            </div>
+          </div>
+          <div className="rounded-xl border border-rose-100 bg-rose-50/50 p-4">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-100 text-rose-600">
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M19 12l-7 7-7-7" /></svg>
+              </div>
+              <div className="text-[11px] uppercase tracking-[0.15em] text-rose-600">Despesas</div>
+            </div>
+            <div className="mt-2 text-xl font-semibold text-rose-600">
+              R$ {formatBRL(dashboard.cashExpenses || 0)}
+            </div>
+            <div className="mt-1 text-[10px] text-rose-400">Saídas do caixa</div>
+          </div>
+          <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+              </div>
+              <div className="text-[11px] uppercase tracking-[0.15em] text-indigo-600">Resultado</div>
+            </div>
+            {(() => {
+              const result = ((dashboard.membersPaid?.paid || 0) + (dashboard.donationsTotal || 0)) - (dashboard.cashExpenses || 0);
+              return (
+                <>
+                  <div className={`mt-2 text-xl font-semibold ${result >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
+                    {result >= 0 ? '+' : '-'} R$ {formatBRL(Math.abs(result))}
+                  </div>
+                  <div className={`mt-1 text-[10px] ${result >= 0 ? 'text-emerald-500' : 'text-rose-400'}`}>
+                    {result >= 0 ? 'Superávit' : 'Déficit'}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      </div>
+
       {/* ── Main Content Grid ── */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[2fr_1fr]">
         <div className="flex flex-col gap-6">
@@ -234,7 +297,7 @@ const DashboardPage = () => {
               <div className="flex items-center gap-3">
                 <button className="text-xs font-semibold text-ink-400 hover:text-ink-600">Ver tudo</button>
                 <button
-                  onClick={handleClearCash}
+                  onClick={() => setConfirmClearCash(true)}
                   disabled={clearingCash || !isMaster}
                   className="text-xs font-semibold text-rose-500 hover:text-rose-600 disabled:opacity-60"
                 >
@@ -428,6 +491,17 @@ const DashboardPage = () => {
         </div>
       </div>
     </AppShell>
+
+    <ConfirmModal
+      open={confirmClearCash}
+      title="Limpar movimentos do caixa"
+      message="Deseja apagar todos os movimentos do caixa? Esta ação é irreversível."
+      confirmLabel="Limpar tudo"
+      variant="danger"
+      onConfirm={handleClearCash}
+      onCancel={() => setConfirmClearCash(false)}
+    />
+    </>
   );
 };
 
