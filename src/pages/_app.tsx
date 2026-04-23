@@ -41,9 +41,9 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
         <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-white/10 text-4xl backdrop-blur-sm">
           🔒
         </div>
-        <h1 className="text-2xl font-bold text-white">Sistema em Manutenção</h1>
+        <h1 className="text-2xl font-bold text-white">Acesso Restrito</h1>
         <p className="mt-3 max-w-md text-sm text-gray-400">
-          O sistema do Templo de Umbanda Luz e Fé está temporariamente indisponível para manutenção.
+          O sistema do Templo de Umbanda Luz e Fé está temporariamente com acesso restrito.
           Por favor, tente novamente mais tarde.
         </p>
         <div className="mt-8 flex items-center gap-2 rounded-full bg-rose-500/20 px-4 py-2 text-xs font-semibold text-rose-300">
@@ -51,8 +51,14 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75"></span>
             <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500"></span>
           </span>
-          Manutenção em andamento
+          Modo restrito ativado
         </div>
+        <button
+          onClick={() => router.push('/login')}
+          className="mt-6 rounded-xl border border-white/20 bg-white/10 px-6 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
+        >
+          ← Voltar ao Login
+        </button>
       </div>
     );
   }
@@ -61,7 +67,7 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
     <>
       {maintenance && isMaster && (
         <div className="sticky top-0 z-[9999] flex items-center justify-center gap-2 bg-rose-500 px-4 py-1.5 text-xs font-semibold text-white">
-          🔒 Modo manutenção ativo — apenas Masters podem acessar
+          🔒 Modo restrito ativo — apenas Masters podem acessar
         </div>
       )}
       {children}

@@ -7,6 +7,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { upsertUser } from '@services/userService';
 import { auth } from '@services/firebase';
 import { useNotifications } from '@contexts/NotificationContext';
+import SkeletonLoader from '@components/SkeletonLoader';
 
 type AppShellProps = {
   title: string;
@@ -195,7 +196,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   const { unreadCount, notifications, markAsRead } = useNotifications();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   // Todas as abas liberadas para todos
   const allowedNavItems = navItems;
@@ -280,14 +281,14 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
     event.preventDefault();
     const target = filteredSearch[0];
     if (target) {
-      setSearchOpen(false);
+      setMobileSearchOpen(false);
       setSearchQuery('');
       router.push(target.href);
     }
   };
 
   const handleSearchSelect = (href: string) => {
-    setSearchOpen(false);
+    setMobileSearchOpen(false);
     setSearchQuery('');
     router.push(href);
   };
@@ -299,11 +300,7 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
   }).format(new Date());
 
   if (authLoading || (!user && typeof window !== 'undefined')) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-sand-50 text-ink-500">
-        Carregando...
-      </div>
-    );
+    return <SkeletonLoader />;
   }
 
   return (
@@ -384,17 +381,17 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                         className="w-56 rounded-xl border border-ink-100 bg-white px-4 py-2 text-sm text-ink-700 shadow-sm focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100 lg:w-64"
                         placeholder="Buscar..."
                         value={searchQuery}
-                        onFocus={() => setSearchOpen(true)}
+                        onFocus={() => setMobileSearchOpen(true)}
                         onChange={(e) => {
                           setSearchQuery(e.target.value);
-                          setSearchOpen(true);
+                          setMobileSearchOpen(true);
                         }}
                       />
                     </form>
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded bg-ink-100 px-1.5 py-0.5 text-[9px] font-semibold text-ink-400">
                       ⌘K
                     </span>
-                    {searchOpen && searchQuery.trim().length > 0 && (
+                    {mobileSearchOpen && searchQuery.trim().length > 0 && (
                       <div className="absolute z-20 mt-1 w-full rounded-xl border border-ink-100 bg-white p-1.5 shadow-lg">
                         {filteredSearch.length === 0 && (
                           <div className="px-3 py-2 text-xs text-ink-400">Nada encontrado.</div>
@@ -413,6 +410,19 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                       </div>
                     )}
                   </div>
+
+                  {/* Mobile search button */}
+                  <button
+                    type="button"
+                    onClick={() => setMobileSearchOpen((p) => !p)}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-ink-100 bg-white text-ink-500 hover:border-ink-200 hover:text-ink-700 transition md:hidden"
+                    title="Buscar"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="M21 21l-4.35-4.35" />
+                    </svg>
+                  </button>
 
                   {/* Theme toggle */}
                   <button
@@ -482,6 +492,39 @@ export default function AppShell({ title, subtitle, actions, children }: AppShel
                     <span className="hidden text-[11px] text-ink-400 md:inline">{todayLabel} • Marília / SP</span>
                   </div>
                   {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+                </div>
+              )}
+
+              {/* Mobile search panel */}
+              {mobileSearchOpen && (
+                <div className="border-t border-ink-100/50 px-4 py-3 md:hidden">
+                  <form onSubmit={handleSearchSubmit}>
+                    <input
+                      className="w-full rounded-xl border border-ink-100 bg-white px-4 py-2.5 text-sm text-ink-700 shadow-sm focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
+                      placeholder="Buscar seção, card..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      autoFocus
+                    />
+                  </form>
+                  {searchQuery.trim().length > 0 && (
+                    <div className="mt-2 flex flex-col gap-1 rounded-xl border border-ink-100 bg-white p-1.5 shadow-lg">
+                      {filteredSearch.length === 0 && (
+                        <div className="px-3 py-2 text-xs text-ink-400">Nada encontrado.</div>
+                      )}
+                      {filteredSearch.slice(0, 6).map((item) => (
+                        <button
+                          key={`mob-${item.type}-${item.href}-${item.label}`}
+                          onClick={() => handleSearchSelect(item.href)}
+                          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-ink-700 hover:bg-ink-50"
+                          type="button"
+                        >
+                          <span>{item.label}</span>
+                          <span className="text-[10px] uppercase tracking-[0.2em] text-ink-400">{item.type}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </header>

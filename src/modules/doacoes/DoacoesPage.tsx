@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import AppShell from '@components/AppShell';
 import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@contexts/ToastContext';
+import ConfirmModal from '@components/ConfirmModal';
+import { SkeletonList } from '@components/SkeletonLoader';
 import { db } from '@services/firebase';
 import {
   addDoc,
@@ -37,6 +39,7 @@ export default function DoacoesPage() {
   const [valor, setValor] = useState('');
   const [data, setData] = useState('');
   const [descricao, setDescricao] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const fetchDoacoes = async () => {
     if (!db) return;
@@ -139,10 +142,47 @@ export default function DoacoesPage() {
     }
   };
 
+  const handleExportCSV = () => {
+    const fmtVal = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const lines: string[] = [];
+    lines.push('RELATÓRIO DE DOAÇÕES');
+    lines.push(`Data de emissão;${new Date().toLocaleDateString('pt-BR')}`);
+    lines.push('');
+    lines.push('Data;Doador;Valor;Descrição');
+    doacoes.forEach((d) => {
+      lines.push(`${d.data};${d.doador};R$ ${fmtVal(d.valor || 0)};${d.descricao || ''}`);
+    });
+    lines.push('');
+    lines.push(`Total;;R$ ${fmtVal(totalDoacoes)}`);
+    const csv = '\uFEFF' + lines.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `doacoes-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showToast('Relatório de doações exportado!', 'success');
+  };
+
   const totalDoacoes = doacoes.reduce((sum, d) => sum + (d.valor || 0), 0);
 
   return (
-    <AppShell title="Doações" subtitle="Registre e acompanhe as doações recebidas pelo terreiro.">
+    <AppShell
+      title="Doações"
+      subtitle="Registre e acompanhe as doações recebidas pelo terreiro."
+      actions={
+        <button
+          onClick={handleExportCSV}
+          disabled={doacoes.length === 0}
+          className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100 disabled:opacity-60"
+        >
+          📊 Exportar CSV
+        </button>
+      }
+    >
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_2fr]">
         {/* Formulário */}
         {isEditor && (
@@ -204,10 +244,12 @@ export default function DoacoesPage() {
           </div>
 
           {loading ? (
-            <div className="text-sm text-ink-400">Carregando...</div>
+            <SkeletonList />
           ) : doacoes.length === 0 ? (
-            <div className="rounded-2xl border border-ink-100 bg-white p-6 text-center text-sm text-ink-400">
-              Nenhuma doação registrada.
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-ink-100 bg-white p-10">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-ink-50 text-2xl">❤️</div>
+              <div className="text-sm font-medium text-ink-500">Nenhuma doação registrada</div>
+              <div className="text-xs text-ink-400">Adicione a primeira doação ao lado</div>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -225,7 +267,7 @@ export default function DoacoesPage() {
                     </span>
                     {isMaster && (
                       <button
-                        onClick={() => handleDelete(d.id)}
+                        onClick={() => setConfirmDelete(d.id)}
                         className="rounded-lg border border-rose-200 px-2 py-1 text-[11px] font-semibold text-rose-600 hover:border-rose-300"
                       >
                         Remover
@@ -238,6 +280,19 @@ export default function DoacoesPage() {
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        open={!!confirmDelete}
+        title="Remover doação"
+        message="Tem certeza que deseja remover esta doação? O valor também será removido do caixa."
+        confirmLabel="Remover"
+        variant="danger"
+        onConfirm={() => {
+          if (confirmDelete) handleDelete(confirmDelete);
+          setConfirmDelete(null);
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </AppShell>
   );
 }

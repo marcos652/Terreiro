@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '@components/AppShell';
 import { useAuth } from '@contexts/AuthContext';
+import { useToast } from '@contexts/ToastContext';
+import ConfirmModal from '@components/ConfirmModal';
+import { SkeletonList } from '@components/SkeletonLoader';
 import {
   addStockItem,
   clearStockItems,
@@ -29,12 +32,15 @@ export default function EstoquePage() {
   const [clearingAll, setClearingAll] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmDeleteItem, setConfirmDeleteItem] = useState<StockItem | null>(null);
   const { profile } = useAuth();
   const normalizedRole = (profile?.role || '').trim().toUpperCase();
   const isMaster = normalizedRole === 'MASTER';
   const isEditor = normalizedRole === 'EDITOR';
   const permissions = profile?.permissions || [];
   const canEdit = isMaster || (isEditor && permissions.includes('estoque'));
+  const { showToast } = useToast();
 
   useEffect(() => {
     let active = true;
@@ -109,12 +115,11 @@ export default function EstoquePage() {
   const handleDeleteItem = async (item: StockItem) => {
     if (!canEdit) return;
     if (!item.id) return;
-    const confirmed = window.confirm(`Remover o item "${item.name}"?`);
-    if (!confirmed) return;
     setDeletingId(item.id);
     try {
       await deleteStockItem(item.id, profile?.email);
       setItems((prev) => prev.filter((entry) => entry.id !== item.id));
+      showToast(`"${item.name}" removido do estoque.`, 'success');
     } finally {
       setDeletingId(null);
     }
@@ -122,16 +127,42 @@ export default function EstoquePage() {
 
   const handleClearAll = async () => {
     if (!canEdit) return;
-    const confirmed = window.confirm('Deseja apagar todo o estoque?');
-    if (!confirmed) return;
     setClearingAll(true);
     try {
       await clearStockItems(profile?.email);
       setItems([]);
       setQuantityDrafts({});
+      showToast('Estoque limpo com sucesso.', 'success');
     } finally {
       setClearingAll(false);
+      setConfirmClear(false);
     }
+  };
+
+  const handleExportCSV = () => {
+    const lines: string[] = [];
+    lines.push('RELATÓRIO DE ESTOQUE');
+    lines.push(`Data de emissão;${new Date().toLocaleDateString('pt-BR')}`);
+    lines.push('');
+    lines.push('Item;Categoria;Quantidade;Unidade;Fornecedor;Cor;Preço');
+    items.forEach((item) => {
+      lines.push(
+        `${item.name};${item.category};${item.quantity};${item.unit};${item.supplier};${item.color || 'N/A'};R$ ${(item.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+      );
+    });
+    lines.push('');
+    lines.push(`Total itens;;${items.reduce((s, i) => s + i.quantity, 0)}`);
+    const csv = '\uFEFF' + lines.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `estoque-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showToast('Relatório de estoque exportado!', 'success');
   };
 
   return (
@@ -146,11 +177,18 @@ export default function EstoquePage() {
             </div>
           )}
           <button
-            onClick={handleClearAll}
+            onClick={() => setConfirmClear(true)}
             disabled={clearingAll || !canEdit}
             className="w-full rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-600 shadow-sm hover:border-rose-300 disabled:opacity-60 sm:w-auto"
           >
             {clearingAll ? 'Limpando...' : 'Limpar estoque'}
+          </button>
+          <button
+            onClick={handleExportCSV}
+            disabled={items.length === 0}
+            className="w-full rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100 disabled:opacity-60 sm:w-auto"
+          >
+            📊 Exportar CSV
           </button>
           <button
             onClick={handleAddItem}
@@ -294,7 +332,7 @@ export default function EstoquePage() {
                             Atualizar
                           </button>
                           <button
-                            onClick={() => handleDeleteItem(item)}
+                            onClick={() => setConfirmDeleteItem(item)}
                             disabled={!canEdit || deletingId === item.id}
                             className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300 disabled:opacity-60"
                           >
@@ -325,6 +363,29 @@ export default function EstoquePage() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        open={confirmClear}
+        title="Limpar estoque"
+        message="Deseja apagar todo o estoque? Esta ação é irreversível."
+        confirmLabel="Limpar tudo"
+        variant="danger"
+        onConfirm={handleClearAll}
+        onCancel={() => setConfirmClear(false)}
+      />
+
+      <ConfirmModal
+        open={!!confirmDeleteItem}
+        title="Remover item"
+        message={`Deseja remover "${confirmDeleteItem?.name || ''}" do estoque?`}
+        confirmLabel="Remover"
+        variant="danger"
+        onConfirm={() => {
+          if (confirmDeleteItem) handleDeleteItem(confirmDeleteItem);
+          setConfirmDeleteItem(null);
+        }}
+        onCancel={() => setConfirmDeleteItem(null)}
+      />
     </AppShell>
   );
 }

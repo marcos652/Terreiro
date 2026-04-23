@@ -3,6 +3,7 @@ import AppShell from '@components/AppShell';
 import { useAuth } from '@contexts/AuthContext';
 import { addEvent, deleteEvent, updateEvent, EventItem, getEvents } from '@services/eventService';
 import { useNotifications } from '@contexts/NotificationContext';
+import ConfirmModal from '@components/ConfirmModal';
 
 export default function EventosPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -16,6 +17,7 @@ export default function EventosPage() {
   const permissions = profile?.permissions || [];
   const canEdit = isMaster || (isEditor && permissions.includes('eventos'));
   const { addNotification } = useNotifications();
+  const [confirmDeleteEvent, setConfirmDeleteEvent] = useState<EventItem | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -64,10 +66,9 @@ export default function EventosPage() {
   const handleDeleteEvent = async (event: EventItem) => {
     if (!canEdit) return;
     if (!event.id) return;
-    const confirmed = window.confirm(`Remover o evento "${event.title}"?`);
-    if (!confirmed) return;
     await deleteEvent(event.id, profile?.email);
     setEvents((prev) => prev.filter((item) => item.id !== event.id));
+    setConfirmDeleteEvent(null);
   };
 
   const handleStatusChange = async (event: EventItem, status: EventItem['status']) => {
@@ -95,15 +96,15 @@ export default function EventosPage() {
             />
             <div className="flex gap-2">
               <input
+                type="date"
                 className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
-                placeholder="Data (dd/mm/aaaa)"
                 value={form.date}
                 onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
                 disabled={!canEdit}
               />
               <input
+                type="time"
                 className="w-32 rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
-                placeholder="Hora"
                 value={form.time}
                 onChange={(event) => setForm((prev) => ({ ...prev, time: event.target.value }))}
                 disabled={!canEdit}
@@ -205,7 +206,7 @@ export default function EventosPage() {
                         : 'Pendente'}
                     </span>
                     <button
-                      onClick={() => handleDeleteEvent(event)}
+                      onClick={() => setConfirmDeleteEvent(event)}
                       disabled={!canEdit}
                       className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:border-rose-300 disabled:opacity-60"
                     >
@@ -219,11 +220,27 @@ export default function EventosPage() {
               <div className="py-8 text-center text-sm text-ink-400">Carregando eventos...</div>
             )}
             {filtered.length === 0 && (
-              <div className="py-8 text-center text-sm text-ink-400">Nenhum evento para este filtro.</div>
+              <div className="flex flex-col items-center gap-3 py-10">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-ink-50 text-2xl">📅</div>
+                <div className="text-sm font-medium text-ink-500">Nenhum evento para este filtro</div>
+                <div className="text-xs text-ink-400">Crie um novo evento ao lado</div>
+              </div>
             )}
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        open={!!confirmDeleteEvent}
+        title="Remover evento"
+        message={`Deseja remover o evento "${confirmDeleteEvent?.title || ''}"?`}
+        confirmLabel="Remover"
+        variant="danger"
+        onConfirm={() => {
+          if (confirmDeleteEvent) handleDeleteEvent(confirmDeleteEvent);
+        }}
+        onCancel={() => setConfirmDeleteEvent(null)}
+      />
     </AppShell>
   );
 }

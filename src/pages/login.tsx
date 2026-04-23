@@ -3,8 +3,8 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, db, firebaseConfig, firebaseConfigMissing } from '@services/firebase';
-import { getUserById, upsertUser } from '@services/userService';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { getUserById, upsertUser, updateUser } from '@services/userService';
+import { collection, getDocs, orderBy, query, doc, getDoc, setDoc } from 'firebase/firestore';
 import { COLLECTIONS } from '@services/firestoreCollections';
 import { logService } from '@services/logService';
 
@@ -61,7 +61,34 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [nextEvent, setNextEvent] = useState<NextEvent | null>(null);
   const [eventLoading, setEventLoading] = useState(true);
+  const [failedAttempts, setFailedAttempts] = useState<Record<string, number>>({});
+  const [clientIp, setClientIp] = useState('unknown');
+  const [clientLocation, setClientLocation] = useState('');
+  const [ipBlocked, setIpBlocked] = useState(false);
   const router = useRouter();
+
+  // Get client IP and check if blocked
+  useEffect(() => {
+    const checkIp = async () => {
+      try {
+        const res = await fetch('/api/get-ip');
+        const data = await res.json();
+        const ip = data.ip || 'unknown';
+        setClientIp(ip);
+        const loc = [data.city, data.region].filter(Boolean).join(', ');
+        if (loc) setClientLocation(loc);
+        // Check if IP is blocked in Firestore
+        if (db && ip !== 'unknown') {
+          const ipKey = ip.replace(/\./g, '_');
+          const ipDoc = await getDoc(doc(db, COLLECTIONS.BLOCKED_IPS, ipKey));
+          if (ipDoc.exists() && ipDoc.data()?.blocked) {
+            setIpBlocked(true);
+          }
+        }
+      } catch {}
+    };
+    checkIp();
+  }, []);
 
   // Fetch next event (public - no auth needed, uses Firestore REST or try/catch)
   useEffect(() => {
@@ -91,6 +118,10 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (ipBlocked) {
+      setError('Seu acesso foi bloqueado por excesso de tentativas. Fale com o administrador.');
+      return;
+    }
     setLoading(true);
     setError('');
     setInfo('');
@@ -113,13 +144,13 @@ export default function LoginPage() {
             name: normalizedEmail.split('@')[0],
             email: normalizedEmail,
             role: 'VISUALIZADOR',
-            status: 'APROVADO',
+            status: 'PENDENTE',
             created_at: new Date().toISOString(),
           });
-          setInfo('Conta criada e aprovada. Você já está logado.');
+          await logService.addLog(normalizedEmail, 'Criou conta (aguardando aprovação)');
+          await signOut(auth);
+          setInfo('Conta criada com sucesso! Aguarde a aprovação do administrador para acessar o sistema.');
           setLoading(false);
-          await logService.addLog(normalizedEmail, 'Criou conta e fez login (registro)');
-          router.push('/');
           return;
         } catch (err: any) {
           const code = err?.code || '';
@@ -146,7 +177,43 @@ export default function LoginPage() {
       } catch (err: any) {
         const code = err?.code || '';
         const isNotFound = code === 'auth/user-not-found' || code === 'auth/invalid-credential';
-        setError(isNotFound ? 'Usuário não encontrado ou senha inválida.' : 'Usuário ou senha inválidos.');
+
+        // Track failed attempts
+        const key = normalizedEmail;
+        const newAttempts = { ...failedAttempts, [key]: (failedAttempts[key] || 0) + 1 };
+        setFailedAttempts(newAttempts);
+        const attempts = newAttempts[key];
+        const remaining = 3 - attempts;
+
+        if (attempts >= 3) {
+          // Block the IP
+          try {
+            if (db && clientIp !== 'unknown') {
+              const ipKey = clientIp.replace(/\./g, '_');
+              await setDoc(doc(db, COLLECTIONS.BLOCKED_IPS, ipKey), {
+                ip: clientIp,
+                email: normalizedEmail,
+                blocked: true,
+                blocked_at: new Date().toISOString(),
+              });
+              setIpBlocked(true);
+            }
+          } catch {}
+
+          // Block the user account if it exists
+          try {
+            const users = await getDocs(collection(db, COLLECTIONS.USERS));
+            const matchUser = users.docs.find((d) => d.data().email?.toLowerCase() === normalizedEmail);
+            if (matchUser) {
+              await updateUser(matchUser.id, { status: 'BLOQUEADO' });
+            }
+          } catch {}
+
+          await logService.addLog(normalizedEmail, `Bloqueado após 3 tentativas de login (IP: ${clientIp}${clientLocation ? ` - ${clientLocation}` : ''})`);
+          setError('Conta bloqueada por excesso de tentativas. Fale com o administrador.');
+        } else {
+          setError(`${isNotFound ? 'Usuário não encontrado ou senha inválida' : 'Senha inválida'}. ${remaining} tentativa${remaining !== 1 ? 's' : ''} restante${remaining !== 1 ? 's' : ''}.`);
+        }
         setLoading(false);
         return;
       }
@@ -158,7 +225,7 @@ export default function LoginPage() {
           name: normalizedEmail.split('@')[0],
           email: normalizedEmail,
           role: 'VISUALIZADOR' as const,
-          status: 'APROVADO' as const,
+          status: 'PENDENTE' as const,
           created_at: new Date().toISOString(),
         };
         try {
@@ -179,7 +246,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      await logService.addLog(normalizedEmail, 'Fez login no sistema');
+      await logService.addLog(normalizedEmail, `Fez login no sistema (IP: ${clientIp}${clientLocation ? ` - ${clientLocation}` : ''})`);
       router.push('/');
     } catch {
       setError('Usuário ou senha inválidos.');
@@ -378,17 +445,6 @@ export default function LoginPage() {
               </div>
 
               <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-2 text-xs font-semibold">
-                  <button type="button" onClick={() => setMode('login')}
-                    className={`rounded-full px-4 py-1.5 transition ${mode === 'login' ? 'bg-indigo-500 text-white' : 'bg-white/10 text-white/50 hover:bg-white/15'}`}>
-                    Entrar
-                  </button>
-                  <button type="button" onClick={() => setMode('register')}
-                    className={`rounded-full px-4 py-1.5 transition ${mode === 'register' ? 'bg-indigo-500 text-white' : 'bg-white/10 text-white/50 hover:bg-white/15'}`}>
-                    Criar conta
-                  </button>
-                </div>
-
                 <div>
                   <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/30">E-mail</label>
                   <input
@@ -449,7 +505,7 @@ export default function LoginPage() {
                       </svg>
                       Processando...
                     </span>
-                  ) : mode === 'register' ? 'Criar conta' : 'Entrar'}
+                  ) : 'Entrar'}
                 </button>
 
                 <button type="button" onClick={handleReset}
