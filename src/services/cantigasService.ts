@@ -10,6 +10,7 @@ export interface CantigaItem {
   lyrics: string;
   audioBase64?: string;
   audioName?: string;
+  transcription?: string;
   created_at: string;
 }
 

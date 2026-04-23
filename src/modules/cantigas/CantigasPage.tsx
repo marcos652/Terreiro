@@ -25,10 +25,15 @@ export default function CantigasPage() {
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
   const [savingRecording, setSavingRecording] = useState(false);
   const [recordingName, setRecordingName] = useState('');
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const [expandedTranscriptions, setExpandedTranscriptions] = useState<Record<string, boolean>>({});
+  const [transcribing, setTranscribing] = useState<Record<string, boolean>>({});
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const speechRecRef = useRef<any>(null);
+  const liveTranscriptRef = useRef('');
   const { profile } = useAuth();
   const { showToast } = useToast();
   const normalizedRole = (profile?.role || "").trim().toUpperCase();
@@ -206,10 +211,44 @@ export default function CantigasPage() {
       setRecordedBlob(null);
       setRecordedUrl(null);
       setRecordingName('');
+      setLiveTranscript('');
+      liveTranscriptRef.current = '';
 
       timerRef.current = setInterval(() => {
         setRecordingTime((prev) => prev + 1);
       }, 1000);
+
+      // Start Web Speech API in parallel for transcription
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'pt-BR';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        let finalTranscript = '';
+        recognition.onresult = (event: any) => {
+          let interim = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript + ' ';
+            } else {
+              interim += event.results[i][0].transcript;
+            }
+          }
+          const full = (finalTranscript + interim).trim();
+          setLiveTranscript(full);
+          liveTranscriptRef.current = full;
+        };
+        recognition.onerror = () => {};
+        recognition.onend = () => {
+          // Auto-restart if still recording
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            try { recognition.start(); } catch {}
+          }
+        };
+        try { recognition.start(); } catch {}
+        speechRecRef.current = recognition;
+      }
     } catch {
       showToast('Não foi possível acessar o microfone.', 'error');
     }
@@ -221,6 +260,11 @@ export default function CantigasPage() {
     }
     setIsRecording(false);
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    // Stop speech recognition
+    if (speechRecRef.current) {
+      try { speechRecRef.current.onend = null; speechRecRef.current.stop(); } catch {}
+      speechRecRef.current = null;
+    }
   };
 
   const cancelRecording = () => {
@@ -229,6 +273,8 @@ export default function CantigasPage() {
     if (recordedUrl) URL.revokeObjectURL(recordedUrl);
     setRecordedUrl(null);
     setRecordingName('');
+    setLiveTranscript('');
+    liveTranscriptRef.current = '';
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -246,12 +292,14 @@ export default function CantigasPage() {
         reader.readAsDataURL(recordedBlob);
       });
       const name = recordingName.trim() || `Gravação ${new Date().toLocaleString('pt-BR')}`;
+      const transcript = liveTranscriptRef.current.trim();
       const payload: Omit<CantigaItem, 'id'> = {
         category,
         title: name,
         lyrics: '🎙️ Gravação',
         audioBase64: base64,
         audioName: `${name}.webm`,
+        transcription: transcript || undefined,
         created_at: new Date().toISOString(),
       };
       const id = await addCantiga(payload, profile?.email);
@@ -260,6 +308,8 @@ export default function CantigasPage() {
       if (recordedUrl) URL.revokeObjectURL(recordedUrl);
       setRecordedUrl(null);
       setRecordingName('');
+      setLiveTranscript('');
+      liveTranscriptRef.current = '';
       showToast(`Gravação "${name}" salva!`, 'success');
     } catch {
       showToast('Erro ao salvar gravação.', 'error');
@@ -378,8 +428,8 @@ export default function CantigasPage() {
 
       {/* ── Modal da pasta ── */}
       {modalCategory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4" onClick={() => setModalCategory(null)}>
-          <div className="w-full max-w-3xl rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-sm px-3 py-4 sm:px-4 sm:py-6" onClick={() => setModalCategory(null)}>
+          <div className="w-full max-w-3xl rounded-2xl bg-white p-4 sm:p-5 shadow-2xl my-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs uppercase tracking-[0.2em] text-ink-400">Pasta</div>
@@ -543,12 +593,40 @@ export default function CantigasPage() {
                   </div>
                 )}
 
+                {/* Live transcript indicator while recording */}
+                {isRecording && liveTranscript && (
+                  <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5">
+                    <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-amber-600 mb-1">
+                      <svg viewBox="0 0 24 24" className="h-3 w-3 animate-pulse" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                      </svg>
+                      Captando fala...
+                    </div>
+                    <div className="text-xs text-ink-600 italic">{liveTranscript}</div>
+                  </div>
+                )}
+
                 {recordedUrl && !isRecording && (
                   <div className="mt-3 space-y-3">
                     <div className="rounded-lg border border-ink-100 bg-white p-3">
                       <div className="text-[11px] text-ink-400 mb-1">Pré-visualização</div>
                       <audio controls src={recordedUrl} className="w-full h-10" preload="metadata" />
                     </div>
+                    {liveTranscript && (
+                      <div className="rounded-lg border border-violet-200 bg-violet-50 p-3">
+                        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-violet-500 mb-1">
+                          <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                          </svg>
+                          Transcrição capturada
+                        </div>
+                        <div className="text-sm text-ink-700 whitespace-pre-wrap">{liveTranscript}</div>
+                      </div>
+                    )}
                     <input
                       className="w-full rounded-xl border border-ink-100 bg-white px-3 py-2 text-sm text-ink-700 focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-100"
                       placeholder="Nome da gravação (opcional)"
@@ -599,6 +677,38 @@ export default function CantigasPage() {
                           {item.audioName && (
                             <div className="mt-1 text-[11px] text-ink-400">📁 {item.audioName}</div>
                           )}
+                          {/* Transcrever button */}
+                          {item.transcription ? (
+                            <div className="mt-2">
+                              <button
+                                onClick={() => setExpandedTranscriptions(prev => ({ ...prev, [item.id!]: !prev[item.id!] }))}
+                                className="flex items-center gap-1.5 rounded-lg bg-violet-100 px-2.5 py-1.5 text-[11px] font-semibold text-violet-700 hover:bg-violet-200 transition"
+                              >
+                                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                  <polyline points="14 2 14 8 20 8"/>
+                                  <line x1="16" y1="13" x2="8" y2="13"/>
+                                  <line x1="16" y1="17" x2="8" y2="17"/>
+                                </svg>
+                                {expandedTranscriptions[item.id!] ? 'Ocultar transcrição' : 'Transcrever'}
+                              </button>
+                              {expandedTranscriptions[item.id!] && (
+                                <div className="mt-2 rounded-xl border border-violet-200 bg-violet-50 p-3 animate-in" style={{ animation: 'fadeSlideIn 0.25s ease-out' }}>
+                                  <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-violet-500 mb-1.5">
+                                    <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+                                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                      <line x1="12" y1="19" x2="12" y2="23"/>
+                                    </svg>
+                                    Transcrição
+                                  </div>
+                                  <div className="text-sm text-ink-700 whitespace-pre-wrap leading-relaxed">{item.transcription}</div>
+                                </div>
+                              )}
+                            </div>
+                          ) : item.audioName?.endsWith('.webm') ? (
+                            <div className="mt-2 text-[11px] text-ink-400 italic">Sem transcrição disponível para esta gravação.</div>
+                          ) : null}
                         </div>
                       ) : (
                         <pre className="mt-2 whitespace-pre-wrap text-sm text-ink-600">{item.lyrics}</pre>
