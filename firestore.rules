@@ -150,10 +150,10 @@ service cloud.firestore {
       allow write: if isMaster() || isEditor();
     }
 
-    // Settings (modo restrito, etc.)
+    // Settings (modo restrito, metas, baselines, etc.)
     match /settings/{docId} {
       allow read: if request.auth != null;
-      allow write: if isMaster();
+      allow write: if isMaster() || (hasPermission("caixa") && docId in ["caixa_goal", "caixa_entradas_baseline"]);
     }
 
     // IPs bloqueados (leitura pública para checagem no login, escrita autenticada)
