@@ -28,10 +28,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let unsubProfile: (() => void) | null = null;
     let presenceInterval: ReturnType<typeof setInterval> | null = null;
 
-    const updatePresence = (uid: string, online: boolean) => {
+    const updatePresence = (uid: string, online: boolean, profileData?: { name?: string; photoURL?: string }) => {
       try {
+        if (!db) return;
         const ref = doc(db, COLLECTIONS.USER_PRESENCE, uid);
-        setDoc(ref, { online, last_seen: serverTimestamp() }, { merge: true }).catch(() => {});
+        setDoc(ref, { 
+          online, 
+          last_seen: serverTimestamp(),
+          ...(profileData?.name ? { name: profileData.name } : {}),
+          ...(profileData?.photoURL ? { photoURL: profileData.photoURL } : {})
+        }, { merge: true }).catch(() => {});
       } catch {}
     };
 
@@ -48,10 +54,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Marcar online
-      updatePresence(firebaseUser.uid, true);
+      // Marcar online (inicialmente sem perfil)
+      updatePresence(firebaseUser.uid, true, { name: firebaseUser.displayName || '', photoURL: firebaseUser.photoURL || '' });
+      
       // Atualizar last_seen a cada 60s
-      presenceInterval = setInterval(() => updatePresence(firebaseUser.uid, true), 60_000);
+      let lastProfileData: any = null;
+      presenceInterval = setInterval(() => updatePresence(firebaseUser.uid, true, lastProfileData), 60_000);
 
       // Marcar offline ao sair da página
       const handleBeforeUnload = () => updatePresence(firebaseUser.uid, false);
@@ -63,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (docSnap.exists()) {
           const data = docSnap.data() as any;
           const normalizedRole = (data.role || '').trim().toUpperCase() as AppUser['role'];
-          setProfile({
+          const profileData = {
             id: docSnap.id,
             name: data.name || '',
             email: data.email || '',
@@ -72,16 +80,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             permissions: data.permissions,
             photoURL: data.photoURL,
             created_at: data.created_at || '',
-          });
+          };
+          setProfile(profileData);
+          lastProfileData = { name: profileData.name, photoURL: profileData.photoURL };
+          updatePresence(firebaseUser.uid, true, lastProfileData);
         } else if (isBootstrapMasterUid(firebaseUser.uid)) {
-          setProfile({
+          const profileData = {
             id: firebaseUser.uid,
             name: firebaseUser.displayName || 'Bootstrap Master',
             email: firebaseUser.email || 'bootstrap@local',
-            role: 'MASTER',
-            status: 'APROVADO',
+            role: 'MASTER' as const,
+            status: 'APROVADO' as const,
             created_at: new Date().toISOString(),
-          });
+          };
+          setProfile(profileData);
+          lastProfileData = { name: profileData.name };
+          updatePresence(firebaseUser.uid, true, lastProfileData);
         } else {
           setProfile(null);
         }
