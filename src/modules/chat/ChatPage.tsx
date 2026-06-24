@@ -17,6 +17,7 @@ import {
   updateDoc,
   where,
   limit,
+  Timestamp,
 } from 'firebase/firestore';
 import { COLLECTIONS } from '@services/firestoreCollections';
 
@@ -24,12 +25,17 @@ import { COLLECTIONS } from '@services/firestoreCollections';
 
 type ChatGroup = {
   id: string;
+  type?: 'group' | 'dm';
   name: string;
   description: string;
   members: string[];
   createdBy: string;
   createdByName: string;
-  created_at: any;
+  created_at: Timestamp | any;
+  lastMessageAt?: Timestamp | any;
+  lastMessageText?: string;
+  typing?: string[];
+  lastRead?: Record<string, Timestamp | any>;
 };
 
 type ChatMessage = {
@@ -38,7 +44,9 @@ type ChatMessage = {
   authorUid: string;
   authorPhoto?: string;
   text: string;
-  created_at: any;
+  created_at: Timestamp | any;
+  updated_at?: Timestamp | any;
+  isDeleted?: boolean;
 };
 
 type UserPresence = {
@@ -75,45 +83,6 @@ function lastSeenText(timestamp: any): string {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
-// ── Presence Hook ──
-
-function usePresence(uid: string | undefined, name: string, photoURL?: string) {
-  useEffect(() => {
-    if (!db || !uid) return;
-    const presenceRef = doc(db, COLLECTIONS.USER_PRESENCE, uid);
-
-    // Set online
-    setDoc(presenceRef, {
-      uid,
-      name,
-      photoURL: photoURL || '',
-      online: true,
-      last_seen: serverTimestamp(),
-    }, { merge: true });
-
-    // Heartbeat every 30s
-    const interval = setInterval(() => {
-      setDoc(presenceRef, { online: true, last_seen: serverTimestamp() }, { merge: true });
-    }, 30000);
-
-    // Set offline on unload
-    const handleUnload = () => {
-      // Use sendBeacon for reliability
-      const data = JSON.stringify({ online: false });
-      navigator.sendBeacon?.(`https://firestore.googleapis.com/`, data);
-      // Fallback: just update
-      setDoc(presenceRef, { online: false, last_seen: serverTimestamp() }, { merge: true });
-    };
-
-    window.addEventListener('beforeunload', handleUnload);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('beforeunload', handleUnload);
-      setDoc(presenceRef, { online: false, last_seen: serverTimestamp() }, { merge: true });
-    };
-  }, [uid, name, photoURL]);
-}
-
 // ── Main Component ──
 
 export default function ChatPage() {
@@ -121,15 +90,16 @@ export default function ChatPage() {
   const { showToast } = useToast();
   const isMaster = (profile?.role || '').trim().toUpperCase() === 'MASTER';
 
-  // Presence
-  usePresence(user?.uid, profile?.name || user?.email || '', profile?.photoURL);
-
   // State
   const [groups, setGroups] = useState<ChatGroup[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [messageLimit, setMessageLimit] = useState(50);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [presenceList, setPresenceList] = useState<UserPresence[]>([]);
   const [allUsers, setAllUsers] = useState<UserInfo[]>([]);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
@@ -178,10 +148,11 @@ export default function ChatPage() {
   // ── Listen to messages for selected group ──
   useEffect(() => {
     if (!db || !selectedGroupId) { setMessages([]); return; }
+    setMessageLimit(50);
     const q = query(
       collection(db, COLLECTIONS.CHAT_GROUPS, selectedGroupId, 'messages'),
       orderBy('created_at', 'asc'),
-      limit(200)
+      limit(messageLimit)
     );
     const unsub = onSnapshot(q, (snapshot) => {
       setMessages(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as ChatMessage[]);
@@ -206,20 +177,91 @@ export default function ChatPage() {
     if (!db || !user || !selectedGroupId || !text.trim()) return;
     setSending(true);
     try {
-      await addDoc(collection(db, COLLECTIONS.CHAT_GROUPS, selectedGroupId, 'messages'), {
-        author: profile?.name || user.email || 'Anônimo',
-        authorUid: user.uid,
-        authorPhoto: profile?.photoURL || '',
-        text: text.trim(),
-        created_at: serverTimestamp(),
-      });
+      if (editingMessageId) {
+        // Edit message
+        await updateDoc(doc(db, COLLECTIONS.CHAT_GROUPS, selectedGroupId, 'messages', editingMessageId), {
+          text: text.trim(),
+          updated_at: serverTimestamp(),
+        });
+        setEditingMessageId(null);
+      } else {
+        // Send new message
+        await addDoc(collection(db, COLLECTIONS.CHAT_GROUPS, selectedGroupId, 'messages'), {
+          author: profile?.name || user.email || 'Anônimo',
+          authorUid: user.uid,
+          authorPhoto: profile?.photoURL || '',
+          text: text.trim(),
+          created_at: serverTimestamp(),
+        });
+        
+        // Update group metadata
+        await updateDoc(doc(db, COLLECTIONS.CHAT_GROUPS, selectedGroupId), {
+          lastMessageAt: serverTimestamp(),
+          lastMessageText: text.trim(),
+          [`lastRead.${user.uid}`]: serverTimestamp(),
+        });
+      }
       setText('');
+      handleTyping(false);
     } catch {
       showToast('Erro ao enviar mensagem.', 'error');
     } finally {
       setSending(false);
     }
   };
+
+  // ── Edit / Delete Message ──
+  const handleDeleteMessage = async (msgId: string) => {
+    if (!db || !selectedGroupId || !window.confirm('Apagar esta mensagem?')) return;
+    try {
+      await updateDoc(doc(db, COLLECTIONS.CHAT_GROUPS, selectedGroupId, 'messages', msgId), {
+        isDeleted: true,
+        text: 'Mensagem apagada.',
+        updated_at: serverTimestamp(),
+      });
+    } catch {
+      showToast('Erro ao apagar mensagem.', 'error');
+    }
+  };
+
+  const handleEditMessage = (msg: ChatMessage) => {
+    if (msg.isDeleted) return;
+    setEditingMessageId(msg.id);
+    setText(msg.text);
+  };
+
+  // ── Typing Indicator ──
+  const handleTyping = (typing: boolean) => {
+    if (!db || !selectedGroupId || !user) return;
+    setIsTyping(typing);
+    if (typing) {
+      updateDoc(doc(db, COLLECTIONS.CHAT_GROUPS, selectedGroupId), {
+        typing: [...new Set([...(selectedGroup?.typing || []), user.uid])]
+      }).catch(() => {});
+    } else {
+      updateDoc(doc(db, COLLECTIONS.CHAT_GROUPS, selectedGroupId), {
+        typing: (selectedGroup?.typing || []).filter(u => u !== user.uid)
+      }).catch(() => {});
+    }
+  };
+
+  const onTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setText(e.target.value);
+    if (!isTyping) handleTyping(true);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      handleTyping(false);
+    }, 2000);
+  };
+
+  // ── Update Last Read on group change ──
+  useEffect(() => {
+    if (selectedGroupId && db && user) {
+      updateDoc(doc(db, COLLECTIONS.CHAT_GROUPS, selectedGroupId), {
+        [`lastRead.${user.uid}`]: serverTimestamp()
+      }).catch(() => {});
+    }
+  }, [selectedGroupId, messages.length]);
 
   // ── Create group ──
   const handleCreateGroup = async () => {
@@ -343,10 +385,14 @@ export default function ChatPage() {
                       {g.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 overflow-hidden">
-                      <div className="truncate text-sm font-semibold text-ink-900">{g.name}</div>
+                      <div className="flex items-center justify-between">
+                        <div className="truncate text-sm font-semibold text-ink-900">{g.name}</div>
+                        {g.lastMessageAt && (!g.lastRead || !g.lastRead[user?.uid || ''] || g.lastMessageAt.toDate?.().getTime() > g.lastRead[user?.uid || ''].toDate?.().getTime()) && (
+                          <div className="h-2 w-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                        )}
+                      </div>
                       <div className="truncate text-[11px] text-ink-400">
-                        {g.members?.length || 0} membros
-                        {g.description ? ` • ${g.description}` : ''}
+                        {g.lastMessageText ? g.lastMessageText : `${g.members?.length || 0} membros`}
                       </div>
                     </div>
                     {isMaster && g.name !== 'Geral' && (
@@ -434,7 +480,15 @@ export default function ChatPage() {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto px-4 py-4">
+              <div 
+                className="flex-1 overflow-y-auto px-4 py-4"
+                onScroll={(e) => {
+                  const target = e.target as HTMLDivElement;
+                  if (target.scrollTop === 0 && messages.length >= messageLimit) {
+                    setMessageLimit(prev => prev + 50);
+                  }
+                }}
+              >
                 {messages.length === 0 && (
                   <div className="flex h-full items-center justify-center text-sm text-ink-400">
                     Nenhuma mensagem ainda. Comece a conversa!
@@ -444,7 +498,7 @@ export default function ChatPage() {
                   {messages.map((msg) => {
                     const isMe = msg.authorUid === user?.uid;
                     return (
-                      <div key={msg.id} className={`flex gap-2.5 ${isMe ? 'flex-row-reverse' : ''}`}>
+                      <div key={msg.id} className={`group flex gap-2.5 ${isMe ? 'flex-row-reverse' : ''}`}>
                         <Avatar name={msg.author} photo={msg.authorPhoto} />
                         <div className={`max-w-[70%] ${isMe ? 'items-end' : 'items-start'}`}>
                           <div className={`rounded-2xl px-4 py-2.5 ${
@@ -455,8 +509,14 @@ export default function ChatPage() {
                             {!isMe && (
                               <div className="mb-1 text-[11px] font-semibold text-ink-400">{msg.author}</div>
                             )}
-                            <div className="text-sm whitespace-pre-wrap">{msg.text}</div>
+                            <div className={`text-sm whitespace-pre-wrap ${msg.isDeleted ? 'italic text-ink-300' : ''}`}>{msg.text}</div>
                           </div>
+                          {isMe && !msg.isDeleted && (
+                            <div className="mt-1 flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => handleEditMessage(msg)} className="text-[10px] text-indigo-500 hover:underline">Editar</button>
+                              <button onClick={() => handleDeleteMessage(msg.id)} className="text-[10px] text-rose-500 hover:underline">Apagar</button>
+                            </div>
+                          )}
                           <div className={`mt-0.5 text-[10px] text-ink-400 ${isMe ? 'text-right' : ''}`}>
                             {formatTime(msg.created_at)}
                           </div>
@@ -464,18 +524,29 @@ export default function ChatPage() {
                       </div>
                     );
                   })}
+                  {selectedGroup?.typing?.filter(u => u !== user?.uid).length ? (
+                    <div className="text-[11px] text-ink-400 italic px-4 py-1">
+                      Alguém está digitando...
+                    </div>
+                  ) : null}
                   <div ref={messagesEndRef} />
                 </div>
               </div>
 
               {/* Input */}
               <div className="border-t border-ink-100 px-4 py-3">
+                {editingMessageId && (
+                  <div className="mb-2 flex items-center justify-between rounded-lg bg-indigo-50 px-3 py-1.5 text-xs text-indigo-700">
+                    <div>Editando mensagem...</div>
+                    <button onClick={() => { setEditingMessageId(null); setText(''); }} className="font-semibold text-indigo-900 hover:underline">Cancelar</button>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <input
                     className="flex-1 rounded-xl border border-ink-100 bg-white px-4 py-2.5 text-sm text-ink-700 focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-100"
                     placeholder="Digite sua mensagem..."
                     value={text}
-                    onChange={(e) => setText(e.target.value)}
+                    onChange={onTextChange}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                   />
                   <button

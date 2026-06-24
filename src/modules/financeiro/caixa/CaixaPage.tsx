@@ -4,6 +4,7 @@ import AppShell from '@components/AppShell';
 import {
   addCashTransaction,
   getCashTransactions,
+  clearCashTransactions,
   CashTransaction,
 } from '@services/transactionService';
 import { getMemberships, MembershipItem } from '@services/membershipService';
@@ -65,6 +66,7 @@ export default function CaixaPage() {
   const [editingGoal, setEditingGoal] = useState(false);
   const [savingGoal, setSavingGoal] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [clearingCaixa, setClearingCaixa] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -106,13 +108,11 @@ export default function CaixaPage() {
   }, [user]);
 
   const totals = useMemo(() => {
-    const entradas = transactions.filter((t) => t.type === 'entrada').reduce((acc, t) => acc + t.amount, 0);
-    const saidas = transactions.filter((t) => t.type === 'saida').reduce((acc, t) => acc + t.amount, 0);
-    return {
-      entradas,
-      saidas,
-      saldo: entradas - saidas,
-    };
+    // Filtrar transações com valores inválidos (NaN, undefined, etc.)
+    const valid = transactions.filter((t) => typeof t.amount === 'number' && !Number.isNaN(t.amount));
+    const entradas = valid.filter((t) => t.type === 'entrada').reduce((acc, t) => acc + t.amount, 0);
+    const saidas = valid.filter((t) => t.type === 'saida').reduce((acc, t) => acc + t.amount, 0);
+    return { entradas, saidas, saldo: entradas - saidas };
   }, [transactions]);
 
   const filtered = useMemo(() => {
@@ -510,6 +510,7 @@ export default function CaixaPage() {
       </div>
 
       {loading ? <SkeletonCards /> : (
+      <div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-ink-100 bg-white p-4 shadow-floating">
           <div className="flex items-center gap-2">
@@ -544,6 +545,31 @@ export default function CaixaPage() {
             {transactions.length > 0 ? `R$ ${formatBRL(totals.saidas)}` : '—'}
           </div>
         </div>
+      </div>
+      {canEdit && transactions.length > 0 && (
+        <div className="mt-3 flex justify-end">
+          <button
+            onClick={async () => {
+              if (!window.confirm('Tem certeza que deseja ZERAR todo o caixa? Isso apagará todas as transações (entradas e saídas). Esta ação não pode ser desfeita.')) return;
+              setClearingCaixa(true);
+              try {
+                const count = await clearCashTransactions(profile?.email);
+                setTransactions([]);
+                showToast(`Caixa zerado! ${count} transações removidas.`, 'success');
+              } catch (err) {
+                console.error('Erro ao zerar caixa:', err);
+                showToast('Erro ao zerar caixa. Verifique permissões.', 'error');
+              } finally {
+                setClearingCaixa(false);
+              }
+            }}
+            disabled={clearingCaixa}
+            className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-600 hover:border-rose-300 hover:bg-rose-100 disabled:opacity-60 transition-colors"
+          >
+            {clearingCaixa ? 'Zerando...' : '🗑️ Zerar Caixa'}
+          </button>
+        </div>
+      )}
       </div>
       )}
 
